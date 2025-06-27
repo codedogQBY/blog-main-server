@@ -1,0 +1,55 @@
+// Prisma schema for Blog project
+// Run `npx prisma migrate dev --name init` after configuring DATABASE_URL in .env
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id   String  @id @default(uuid()) @db.Char(36)
+  name String  @unique @db.VarChar(50)
+  users User[]
+  perms RolePermission[]
+}
+
+model Permission {
+  id   String @id @default(uuid()) @db.Char(36)
+  name String @db.VarChar(100)
+  code String @unique @db.VarChar(100)
+  roles RolePermission[]
+}
+
+model RolePermission {
+  roleId       String @db.Char(36)
+  permissionId String @db.Char(36)
+  role         Role       @relation(fields: [roleId], references: [id])
+  permission   Permission @relation(fields: [permissionId], references: [id])
+  @@id([roleId, permissionId])
+}
+
+model User {
+  id          String   @id @default(uuid()) @db.Char(36)
+  name        String   @db.VarChar(100)
+  mail        String   @unique @db.VarChar(100)
+  passwordHash String  @db.VarChar(100)
+  roleId      String?  @db.Char(36)
+  isSuperAdmin Boolean  @default(false)
+
+  role        Role?    @relation(fields: [roleId], references: [id])
+  createdAt   DateTime @default(now()) @db.Timestamp(0)
+  updatedAt   DateTime @updatedAt @db.Timestamp(0)
+}
+
+model VerificationCode {
+  id        String   @id @default(uuid()) @db.Char(36)
+  mail      String   @db.VarChar(100)
+  code      String   @db.Char(6)
+  expiresAt DateTime
+
+  @@index([mail])
+}
