@@ -11,8 +11,9 @@ import {
 import { RolesService } from './roles.service';
 import { Permissions } from '../common/permissions.decorator';
 import { PermissionsGuard } from '../common/permissions.guard';
+import { AuthGuard } from '@nestjs/passport';
 
-@UseGuards(PermissionsGuard)
+@UseGuards(AuthGuard('jwt'), PermissionsGuard)
 @Controller('roles')
 export class RolesController {
   constructor(private readonly service: RolesService) {}

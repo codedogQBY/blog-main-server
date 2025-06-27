@@ -28,6 +28,11 @@ export class VerificationService {
   }
 
   async validateCode(mail: string, code: string) {
+    // 开发环境使用固定验证码
+    if (process.env.NODE_ENV !== 'production' && code === '123456') {
+      return true;
+    }
+    
     const record = await this.prisma.verificationCode.findFirst({
       where: { mail, code },
       orderBy: { expiresAt: 'desc' },
