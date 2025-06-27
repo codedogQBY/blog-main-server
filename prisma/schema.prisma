@@ -32,24 +32,119 @@ model RolePermission {
 }
 
 model User {
-  id           String   @id @default(uuid()) @db.Char(36)
-  name         String   @db.VarChar(100)
-  mail         String   @unique @db.VarChar(100)
-  passwordHash String   @db.VarChar(100)
-  createdAt    DateTime @default(now()) @db.Timestamp(0)
-  updatedAt    DateTime @updatedAt @db.Timestamp(0)
-  isSuperAdmin Boolean  @default(false)
-  roleId       String?  @db.Char(36)
-  role         Role?    @relation(fields: [roleId], references: [id])
+  id           String    @id @default(uuid()) @db.Char(36)
+  name         String    @db.VarChar(50)
+  mail         String    @unique @db.VarChar(100)
+  passwordHash String    @db.VarChar(255)
+  isSuperAdmin Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  @@index([roleId], map: "User_roleId_fkey")
+  roleId String? @db.Char(36)
+  role   Role?   @relation(fields: [roleId], references: [id])
+  
+  // 博客关联
+  articles Article[]
+  comments Comment[]
+
+  @@index([mail])
+  @@map("users")
 }
 
 model VerificationCode {
-  id        String   @id @default(uuid()) @db.Char(36)
-  mail      String   @db.VarChar(100)
-  code      String   @db.Char(6)
+  id        String   @id @default(uuid())
+  mail      String
+  code      String
   expiresAt DateTime
+  createdAt DateTime @default(now())
 
-  @@index([mail])
+  @@map("verification_codes")
+}
+
+// 博客相关模型
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  slug        String    @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  articles    Article[]
+
+  @@map("categories")
+}
+
+model Tag {
+  id        String       @id @default(uuid())
+  name      String       @unique
+  slug      String       @unique
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  
+  articles  ArticleTag[]
+
+  @@map("tags")
+}
+
+model Article {
+  id          String    @id @default(uuid())
+  title       String
+  content     String    @db.Text
+  excerpt     String?
+  coverImage  String?
+  slug        String    @unique
+  published   Boolean   @default(false)
+  views       Int       @default(0)
+  readTime    Int?      // 阅读时间（分钟）
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // 关联
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id])
+  categoryId  String
+  category    Category  @relation(fields: [categoryId], references: [id])
+  
+  tags        ArticleTag[]
+  comments    Comment[]
+
+  @@map("articles")
+}
+
+model ArticleTag {
+  id        String  @id @default(uuid())
+  articleId String
+  tagId     String
+  
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  
+  @@unique([articleId, tagId])
+  @@map("article_tags")
+}
+
+model Comment {
+  id        String    @id @default(uuid())
+  content   String    @db.Text
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  // 关联
+  articleId String
+  article   Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?     @relation(fields: [authorId], references: [id])
+  
+  // 游客评论
+  guestName  String?
+  guestEmail String?
+  
+  // 回复功能
+  parentId   String?
+  parent     Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies    Comment[] @relation("CommentReplies")
+
+  @@map("comments")
 }
