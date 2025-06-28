@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
@@ -35,7 +36,29 @@ async function main() {
     });
   }
 
-  // 4. set first user (if exists) as superAdmin and link role
+  // 4. Create default admin user if not exists
+  const adminEmail = 'admin@admin.com';
+  const existingAdmin = await prisma.user.findUnique({
+    where: { mail: adminEmail }
+  });
+
+  if (!existingAdmin) {
+    const hashedPassword = await bcrypt.hash('admin123', 10);
+    const adminUser = await prisma.user.create({
+      data: {
+        name: 'Super Admin',
+        mail: adminEmail,
+        passwordHash: hashedPassword,
+        isSuperAdmin: true,
+        roleId: adminRole.id,
+      },
+    });
+    console.log('Default admin user created:', adminUser.mail);
+  } else {
+    console.log('Admin user already exists');
+  }
+
+  // 5. set first user (if exists) as superAdmin and link role
   const firstUser = await prisma.user.findFirst();
   if (firstUser) {
     await prisma.user.update({

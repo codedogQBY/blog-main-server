@@ -6,8 +6,37 @@ import { Permission } from '@prisma/client';
 export class PermissionsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(): Promise<Permission[]> {
-    return this.prisma.permission.findMany();
+  async findAll(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }): Promise<{ data: Permission[]; total: number }> {
+    const { page = 1, limit = 10, search } = params || {};
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' as const } },
+        { code: { contains: search, mode: 'insensitive' as const } },
+      ];
+    }
+
+    const [permissions, total] = await Promise.all([
+      this.prisma.permission.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { name: 'asc' }
+      }),
+      this.prisma.permission.count({ where }),
+    ]);
+
+    return {
+      data: permissions,
+      total,
+    };
   }
 
   async findOne(id: string): Promise<Permission> {
@@ -16,18 +45,22 @@ export class PermissionsService {
     return perm;
   }
 
-  async create(code: string, name: string): Promise<Permission> {
-    return this.prisma.permission.create({ data: { code, name } });
+  async create(data: { name: string; code: string }): Promise<Permission> {
+    return this.prisma.permission.create({
+      data,
+    });
   }
 
-  async update(
-    id: string,
-    data: { code?: string; name?: string },
-  ): Promise<Permission> {
-    return this.prisma.permission.update({ where: { id }, data });
+  async update(id: string, data: { name?: string; code?: string }): Promise<Permission> {
+    return this.prisma.permission.update({
+      where: { id },
+      data,
+    });
   }
 
-  async remove(id: string) {
-    return this.prisma.permission.delete({ where: { id } });
+  async remove(id: string): Promise<Permission> {
+    return this.prisma.permission.delete({
+      where: { id },
+    });
   }
 }

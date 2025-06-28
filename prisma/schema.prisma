@@ -15,10 +15,12 @@ model Role {
 }
 
 model Permission {
-  id    String           @id @default(uuid()) @db.Char(36)
-  name  String           @db.VarChar(100)
-  code  String           @unique @db.VarChar(100)
-  roles RolePermission[]
+  id        String           @id @default(uuid()) @db.Char(36)
+  name      String           @db.VarChar(100)
+  code      String           @unique @db.VarChar(100)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  roles     RolePermission[]
 }
 
 model RolePermission {
@@ -46,6 +48,9 @@ model User {
   // 博客关联
   articles Article[]
   comments Comment[]
+  
+  // 文件关联
+  files File[]
 
   @@index([mail])
   @@map("users")
@@ -67,8 +72,15 @@ model Category {
   name        String    @unique
   description String?
   slug        String    @unique
+  parentId    String?
+  status      String    @default("enabled") // enabled, disabled
+  sort        Int       @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  
+  // 自关联
+  parentCategory Category? @relation("CategoryParent", fields: [parentId], references: [id])
+  childCategories Category[] @relation("CategoryParent")
   
   articles    Article[]
 
@@ -76,13 +88,16 @@ model Category {
 }
 
 model Tag {
-  id        String       @id @default(uuid())
-  name      String       @unique
-  slug      String       @unique
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  id          String       @id @default(uuid())
+  name        String       @unique
+  slug        String       @unique
+  description String?
+  color       String?      // 标签颜色
+  sort        Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   
-  articles  ArticleTag[]
+  articles    ArticleTag[]
 
   @@map("tags")
 }
@@ -147,4 +162,44 @@ model Comment {
   replies    Comment[] @relation("CommentReplies")
 
   @@map("comments")
+}
+
+// 文件管理相关模型
+model FileFolder {
+  id        String   @id @default(uuid())
+  name      String
+  path      String   @unique  // 文件夹路径
+  parentId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // 自关联
+  parent   FileFolder?  @relation("FolderParent", fields: [parentId], references: [id])
+  children FileFolder[] @relation("FolderParent")
+  
+  // 文件关联
+  files File[]
+
+  @@map("file_folders")
+}
+
+model File {
+  id          String     @id @default(uuid())
+  name        String     // 原始文件名
+  filename    String     // 存储文件名
+  path        String     // 又拍云存储路径
+  url         String     // 访问URL
+  size        Int        // 文件大小（字节）
+  mimetype    String     // MIME类型
+  extension   String     // 文件扩展名
+  folderId    String?    // 所属文件夹
+  uploadedBy  String     // 上传用户ID
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  // 关联
+  folder   FileFolder? @relation(fields: [folderId], references: [id])
+  uploader User        @relation(fields: [uploadedBy], references: [id])
+
+  @@map("files")
 }

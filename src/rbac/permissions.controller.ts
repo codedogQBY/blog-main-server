@@ -7,6 +7,7 @@ import {
   Post,
   Put,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { PermissionsService } from './permissions.service';
 import { PermissionsSyncService } from './permissions.sync.service';
@@ -25,8 +26,16 @@ export class PermissionsController {
 
   @Get()
   @Permissions('permission.read')
-  findAll() {
-    return this.service.findAll();
+  findAll(
+    @Query('page') page: string = '1',
+    @Query('pageSize') pageSize: string = '10',
+    @Query('search') search?: string,
+  ) {
+    return this.service.findAll({
+      page: parseInt(page),
+      limit: parseInt(pageSize),
+      search,
+    });
   }
 
   @Get(':id')
@@ -38,7 +47,7 @@ export class PermissionsController {
   @Post()
   @Permissions('permission.create')
   create(@Body() dto: { code: string; name: string }) {
-    return this.service.create(dto.code, dto.name);
+    return this.service.create(dto);
   }
 
   @Put(':id')

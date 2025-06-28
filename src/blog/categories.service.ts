@@ -7,13 +7,13 @@ export class CategoriesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createCategoryDto: CreateCategoryDto) {
-    const { name, description } = createCategoryDto;
-    const slug = this.generateSlug(name);
+    const { name, description, slug, parentId, status, sort } = createCategoryDto;
+    const finalSlug = slug || this.generateSlug(name);
 
     // 检查分类名是否已存在
     const existingCategory = await this.prisma.category.findFirst({
       where: {
-        OR: [{ name }, { slug }],
+        OR: [{ name }, { slug: finalSlug }],
       },
     });
 
@@ -25,7 +25,16 @@ export class CategoriesService {
       data: {
         name,
         description,
-        slug,
+        slug: finalSlug,
+        parentId,
+        status: status || 'enabled',
+        sort: sort || 0,
+      },
+      include: {
+        parentCategory: true,
+        _count: {
+          select: { articles: true },
+        },
       },
     });
   }
@@ -34,18 +43,23 @@ export class CategoriesService {
     page: number;
     limit: number;
     search?: string;
+    status?: string;
   }) {
-    const { page, limit, search } = params;
+    const { page, limit, search, status } = params;
     const skip = (page - 1) * limit;
 
-    const where = search
-      ? {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' as const } },
-            { description: { contains: search, mode: 'insensitive' as const } },
-          ],
-        }
-      : {};
+    const where: any = {};
+
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' as const } },
+        { description: { contains: search, mode: 'insensitive' as const } },
+      ];
+    }
+
+    if (status) {
+      where.status = status;
+    }
 
     const [categories, total] = await Promise.all([
       this.prisma.category.findMany({
@@ -53,17 +67,21 @@ export class CategoriesService {
         skip,
         take: limit,
         include: {
+          parentCategory: true,
           _count: {
             select: { articles: true },
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
       }),
       this.prisma.category.count({ where }),
     ]);
 
     return {
-      data: categories,
+      data: categories.map(cat => ({
+        ...cat,
+        articleCount: cat._count.articles,
+      })),
       pagination: {
         page,
         limit,
@@ -77,6 +95,7 @@ export class CategoriesService {
     const category = await this.prisma.category.findUnique({
       where: { id },
       include: {
+        parentCategory: true,
         _count: {
           select: { articles: true },
         },
@@ -87,14 +106,18 @@ export class CategoriesService {
       throw new NotFoundException('分类不存在');
     }
 
-    return category;
+    return {
+      ...category,
+      articleCount: category._count.articles,
+    };
   }
 
   async update(id: string, updateCategoryDto: UpdateCategoryDto) {
     const category = await this.findOne(id);
-    const { name, description } = updateCategoryDto;
+    const { name, description, slug, parentId, status, sort } = updateCategoryDto;
 
     const updateData: any = {};
+    
     if (name && name !== category.name) {
       // 检查新名称是否已存在
       const existingCategory = await this.prisma.category.findFirst({
@@ -111,16 +134,36 @@ export class CategoriesService {
       }
 
       updateData.name = name;
-      updateData.slug = this.generateSlug(name);
+      updateData.slug = slug || this.generateSlug(name);
+    } else if (slug && slug !== category.slug) {
+      updateData.slug = slug;
     }
 
     if (description !== undefined) {
       updateData.description = description;
     }
 
+    if (parentId !== undefined) {
+      updateData.parentId = parentId || null;
+    }
+
+    if (status !== undefined) {
+      updateData.status = status;
+    }
+
+    if (sort !== undefined) {
+      updateData.sort = sort;
+    }
+
     return this.prisma.category.update({
       where: { id },
       data: updateData,
+      include: {
+        parentCategory: true,
+        _count: {
+          select: { articles: true },
+        },
+      },
     });
   }
 
@@ -134,6 +177,15 @@ export class CategoriesService {
 
     if (articlesCount > 0) {
       throw new ConflictException('该分类下还有文章，无法删除');
+    }
+
+    // 检查是否有子分类
+    const childrenCount = await this.prisma.category.count({
+      where: { parentId: id },
+    });
+
+    if (childrenCount > 0) {
+      throw new ConflictException('该分类下还有子分类，无法删除');
     }
 
     return this.prisma.category.delete({

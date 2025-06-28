@@ -19,7 +19,7 @@ import { PrismaService } from '../prisma/prisma.service';
     JwtModule.register({
       global: true,
       secret: jwtConstants.secret,
-      signOptions: { expiresIn: '2h' },
+      signOptions: { expiresIn: '7d' },
     }),
   ],
   providers: [

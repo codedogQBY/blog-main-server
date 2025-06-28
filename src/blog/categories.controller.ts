@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Patch,
+  Put,
   Param,
   Delete,
   Query,
@@ -46,7 +47,7 @@ export class CategoriesController {
     return this.categoriesService.findOne(id);
   }
 
-  @Patch(':id')
+  @Put(':id')
   @RequirePermissions('category.update')
   update(@Param('id') id: string, @Body() updateCategoryDto: UpdateCategoryDto) {
     return this.categoriesService.update(id, updateCategoryDto);

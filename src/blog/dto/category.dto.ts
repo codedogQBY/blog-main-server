@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNotEmpty, MaxLength } from 'class-validator';
+import { IsString, IsOptional, IsNotEmpty, MaxLength, IsUUID, IsEnum, IsInt, Min } from 'class-validator';
 
 export class CreateCategoryDto {
   @IsString()
@@ -10,6 +10,24 @@ export class CreateCategoryDto {
   @IsOptional()
   @MaxLength(200)
   description?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  slug?: string;
+
+  @IsUUID()
+  @IsOptional()
+  parentId?: string;
+
+  @IsEnum(['enabled', 'disabled'])
+  @IsOptional()
+  status?: string = 'enabled';
+
+  @IsInt()
+  @IsOptional()
+  @Min(0)
+  sort?: number = 0;
 }
 
 export class UpdateCategoryDto {
@@ -22,4 +40,22 @@ export class UpdateCategoryDto {
   @IsOptional()
   @MaxLength(200)
   description?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  slug?: string;
+
+  @IsUUID()
+  @IsOptional()
+  parentId?: string;
+
+  @IsEnum(['enabled', 'disabled'])
+  @IsOptional()
+  status?: string;
+
+  @IsInt()
+  @IsOptional()
+  @Min(0)
+  sort?: number;
 } 

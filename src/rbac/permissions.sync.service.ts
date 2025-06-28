@@ -27,11 +27,12 @@ export class PermissionsSyncService {
     });
 
     const list = Array.from(codes);
-    const existing = await this.permService.findAll();
+    const existingResult = await this.permService.findAll();
+    const existing = Array.isArray(existingResult) ? existingResult : existingResult.data;
     const existingCodes = new Set(existing.map((p) => p.code));
     const toCreate = list.filter((c) => !existingCodes.has(c));
     for (const code of toCreate) {
-      await this.permService.create(code, code);
+      await this.permService.create({ code, name: code });
     }
     this.logger.log(`Synced permissions. new: ${toCreate.length}, total: ${list.length}`);
     return { created: toCreate.length, total: list.length };
