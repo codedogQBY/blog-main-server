@@ -11,10 +11,7 @@ export class ArticlesService {
     
     // 生成唯一的slug
     const slug = rest.slug || this.generateSlug(title);
-    await this.ensureUniqueSlug(slug);
-
-    // 创建或获取标签
-    const tagData = await this.handleTags(tags || []);
+    const uniqueSlug = await this.ensureUniqueSlug(slug);
 
     const article = await this.prisma.article.create({
       data: {
@@ -22,22 +19,12 @@ export class ArticlesService {
         content,
         excerpt: excerpt || this.generateExcerpt(content),
         coverImage,
-        slug,
+        slug: uniqueSlug,
         authorId,
         categoryId,
         readTime: rest.readTime || this.calculateReadTime(content),
         published: rest.published || false,
         publishedAt: rest.published ? new Date() : null,
-        tags: {
-          create: tagData.map(tag => ({
-            tag: {
-              connectOrCreate: {
-                where: { slug: tag.slug },
-                create: tag,
-              },
-            },
-          })),
-        },
       },
       include: {
         author: {
@@ -50,7 +37,24 @@ export class ArticlesService {
       },
     });
 
-    return article;
+    // 处理标签关联
+    if (tags && tags.length > 0) {
+      await this.updateArticleTags(article.id, tags);
+    }
+
+    // 重新获取文章以包含标签信息
+    return this.prisma.article.findUnique({
+      where: { id: article.id },
+      include: {
+        author: {
+          select: { id: true, name: true },
+        },
+        category: true,
+        tags: {
+          include: { tag: true },
+        },
+      },
+    });
   }
 
   async findAll(params: {
@@ -58,10 +62,11 @@ export class ArticlesService {
     limit: number;
     search?: string;
     category?: string;
+    categoryId?: string;
     tag?: string;
     published?: boolean;
   }) {
-    const { page, limit, search, category, tag, published } = params;
+    const { page, limit, search, category, categoryId, tag, published } = params;
     const skip = (page - 1) * limit;
 
     const where: any = {};
@@ -85,6 +90,10 @@ export class ArticlesService {
       where.category = {
         slug: category,
       };
+    }
+
+    if (categoryId) {
+      where.categoryId = categoryId;
     }
 
     if (tag) {
@@ -133,6 +142,43 @@ export class ArticlesService {
   async findOneBySlug(slug: string) {
     const article = await this.prisma.article.findUnique({
       where: { slug },
+      include: {
+        author: {
+          select: { id: true, name: true },
+        },
+        category: true,
+        tags: {
+          include: { tag: true },
+        },
+        comments: {
+          where: { parentId: null },
+          include: {
+            author: {
+              select: { id: true, name: true },
+            },
+            replies: {
+              include: {
+                author: {
+                  select: { id: true, name: true },
+                },
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    if (!article) {
+      throw new NotFoundException('文章不存在');
+    }
+
+    return article;
+  }
+
+  async findOne(id: string) {
+    const article = await this.prisma.article.findUnique({
+      where: { id },
       include: {
         author: {
           select: { id: true, name: true },
@@ -273,9 +319,9 @@ export class ArticlesService {
     const tagData = await this.handleTags(tagNames);
     
     for (const tag of tagData) {
-      // 先创建或获取标签
+      // 先创建或获取标签 - 使用name作为唯一标识符
       const createdTag = await this.prisma.tag.upsert({
-        where: { slug: tag.slug },
+        where: { name: tag.name },
         update: {},
         create: tag,
       });
