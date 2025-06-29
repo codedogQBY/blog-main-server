@@ -124,6 +124,7 @@ model Article {
   
   tags        ArticleTag[]
   comments    Comment[]
+  likes       Like[]    // 添加点赞关联
 
   @@map("articles")
 }
@@ -202,4 +203,215 @@ model File {
   uploader User        @relation(fields: [uploadedBy], references: [id])
 
   @@map("files")
+}
+
+// 留言墙便签
+model StickyNote {
+  id       String @id @default(uuid())
+  content  String @db.Text
+  author   String
+  category String?
+  color    String @default("#fbbf24") // 默认黄色
+  likes    Like[]
+  comments InteractionComment[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("sticky_notes")
+}
+
+// 图库图片
+model GalleryImage {
+  id          String @id @default(uuid())
+  title       String
+  description String? @db.Text
+  imageUrl    String
+  category    String?
+  tags        String? // JSON格式存储标签
+  likes       Like[]
+  comments    InteractionComment[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("gallery_images")
+}
+
+// 统一的点赞表
+model Like {
+  id           String    @id @default(uuid())
+  fingerprint  String    // 浏览器指纹
+  
+  // 关联的内容类型和ID
+  targetType   String    // 'article', 'sticky_note', 'gallery_image'
+  targetId     String    // 对应内容的ID
+  
+  // 关联关系（可选，用于查询优化）
+  articleId       String?
+  stickyNoteId    String?
+  galleryImageId  String?
+  
+  article      Article?      @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  stickyNote   StickyNote?   @relation(fields: [stickyNoteId], references: [id], onDelete: Cascade)
+  galleryImage GalleryImage? @relation(fields: [galleryImageId], references: [id], onDelete: Cascade)
+  
+  // 用户信息收集
+  userInfo     UserInfo? @relation(fields: [userInfoId], references: [id])
+  userInfoId   String?
+  
+  createdAt DateTime @default(now())
+  
+  // 确保同一指纹对同一内容只能点赞一次
+  @@unique([fingerprint, targetType, targetId])
+  @@map("likes")
+}
+
+// 统一的评论表（用于留言墙和图库）
+model InteractionComment {
+  id           String    @id @default(uuid())
+  content      String    @db.Text
+  author       String?   // 可选的作者名称
+  email        String?   // 可选的邮箱
+  fingerprint  String    // 浏览器指纹
+  
+  // 关联的内容类型和ID
+  targetType   String    // 'sticky_note', 'gallery_image'
+  targetId     String    // 对应内容的ID
+  
+  // 关联关系（可选，用于查询优化）
+  stickyNoteId    String?
+  galleryImageId  String?
+  
+  stickyNote   StickyNote?   @relation(fields: [stickyNoteId], references: [id], onDelete: Cascade)
+  galleryImage GalleryImage? @relation(fields: [galleryImageId], references: [id], onDelete: Cascade)
+  
+  // 回复功能
+  parentId     String?
+  parent       InteractionComment? @relation("InteractionCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies      InteractionComment[] @relation("InteractionCommentReplies")
+  
+  // 用户信息收集
+  userInfo     UserInfo? @relation(fields: [userInfoId], references: [id])
+  userInfoId   String?
+  
+  // 状态管理
+  isApproved   Boolean  @default(true)  // 是否审核通过
+  isDeleted    Boolean  @default(false) // 软删除
+  deletedAt    DateTime?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("interaction_comments")
+}
+
+// 用户信息收集表
+model UserInfo {
+  id           String @id @default(uuid())
+  fingerprint  String @unique // 浏览器指纹
+  
+  // 基本信息
+  ipAddress    String?
+  userAgent    String? @db.Text
+  
+  // 地理位置信息
+  country      String?
+  region       String?
+  city         String?
+  latitude     Float?
+  longitude    Float?
+  timezone     String?
+  
+  // 设备信息
+  deviceType   String? // 'desktop', 'mobile', 'tablet'
+  deviceModel  String?
+  osName       String?
+  osVersion    String?
+  browserName  String?
+  browserVersion String?
+  
+  // 屏幕信息
+  screenWidth  Int?
+  screenHeight Int?
+  
+  // 语言偏好
+  language     String?
+  languages    String? // JSON格式存储多语言
+  
+  // 用户可选信息
+  nickname     String?
+  email        String?
+  
+  // 关联关系
+  likes        Like[]
+  comments     InteractionComment[]
+  
+  // 统计信息
+  totalLikes   Int @default(0)
+  totalComments Int @default(0)
+  lastActiveAt DateTime @default(now())
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("user_info")
+}
+
+// 管理员用户表
+model Admin {
+  id       String @id @default(uuid())
+  username String @unique
+  password String // 加密后的密码
+  email    String @unique
+  role     String @default("admin") // 'admin', 'super_admin'
+  isActive Boolean @default(true)
+  
+  // 权限控制
+  permissions String? @db.Text // JSON格式存储权限列表
+  
+  // 登录记录
+  lastLoginAt DateTime?
+  loginCount  Int @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("admins")
+}
+
+// 系统配置表
+model SystemConfig {
+  id    String @id @default(uuid())
+  key   String @unique
+  value String @db.Text
+  type  String @default("string") // 'string', 'number', 'boolean', 'json'
+  description String? @db.Text
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("system_config")
+}
+
+// 操作日志表
+model ActivityLog {
+  id         String @id @default(uuid())
+  action     String // 操作类型：'like', 'unlike', 'comment', 'delete_comment'
+  targetType String // 目标类型：'article', 'sticky_note', 'gallery_image'
+  targetId   String // 目标ID
+  
+  // 操作者信息
+  fingerprint String?
+  userInfoId  String?
+  adminId     String?
+  
+  // 操作详情
+  details    String? @db.Text // JSON格式存储详细信息
+  ipAddress  String?
+  userAgent  String? @db.Text
+  
+  createdAt DateTime @default(now())
+  
+  @@map("activity_logs")
 }
