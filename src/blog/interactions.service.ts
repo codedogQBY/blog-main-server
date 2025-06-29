@@ -359,4 +359,353 @@ export class InteractionsService {
       replies: comment.replies ? comment.replies.map(reply => this.formatComment(reply)) : [],
     };
   }
+
+  // 管理员接口
+  // 获取点赞列表（管理员）
+  async getAdminLikes(params: {
+    page: number;
+    limit: number;
+    targetType?: string;
+    targetId?: string;
+  }) {
+    const { page, limit, targetType, targetId } = params;
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (targetType) where.targetType = targetType;
+    if (targetId) where.targetId = targetId;
+
+    const [likes, total] = await Promise.all([
+      this.prisma.like.findMany({
+        where,
+        include: {
+          userInfo: {
+            select: {
+              nickname: true,
+              city: true,
+              region: true,
+              country: true,
+              deviceType: true,
+              browserName: true,
+              ipAddress: true,
+              createdAt: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.like.count({ where }),
+    ]);
+
+    return {
+      likes: likes.map(like => ({
+        id: like.id,
+        targetType: like.targetType,
+        targetId: like.targetId,
+        fingerprint: like.fingerprint,
+        createdAt: like.createdAt.toISOString(),
+        userInfo: like.userInfo ? {
+          nickname: like.userInfo.nickname || '匿名用户',
+          location: like.userInfo.city ? 
+            `${like.userInfo.city}${like.userInfo.region ? ', ' + like.userInfo.region : ''}` : 
+            '未知位置',
+          country: like.userInfo.country,
+          deviceType: like.userInfo.deviceType,
+          browser: like.userInfo.browserName,
+          ipAddress: like.userInfo.ipAddress,
+          joinedAt: like.userInfo.createdAt?.toISOString(),
+        } : null,
+      })),
+      total,
+      hasMore: skip + limit < total,
+      page,
+      limit,
+    };
+  }
+
+  // 获取评论列表（管理员）
+  async getAdminComments(params: {
+    page: number;
+    limit: number;
+    targetType?: string;
+    targetId?: string;
+    search?: string;
+  }) {
+    const { page, limit, targetType, targetId, search } = params;
+    const skip = (page - 1) * limit;
+
+    const where: any = { isDeleted: false };
+    if (targetType) where.targetType = targetType;
+    if (targetId) where.targetId = targetId;
+    if (search) {
+      where.OR = [
+        { content: { contains: search, mode: 'insensitive' } },
+        { author: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [comments, total] = await Promise.all([
+      this.prisma.interactionComment.findMany({
+        where,
+        include: {
+          userInfo: {
+            select: {
+              nickname: true,
+              city: true,
+              region: true,
+              country: true,
+              deviceType: true,
+              browserName: true,
+              ipAddress: true,
+              email: true,
+              createdAt: true,
+            },
+          },
+          replies: {
+            where: { isDeleted: false },
+            include: {
+              userInfo: {
+                select: {
+                  nickname: true,
+                  city: true,
+                  region: true,
+                  country: true,
+                  deviceType: true,
+                  browserName: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.interactionComment.count({ where }),
+    ]);
+
+    return {
+      comments: comments.map(comment => ({
+        id: comment.id,
+        content: comment.content,
+        targetType: comment.targetType,
+        targetId: comment.targetId,
+        author: comment.author,
+        email: comment.email,
+        fingerprint: comment.fingerprint,
+        createdAt: comment.createdAt.toISOString(),
+        parentId: comment.parentId,
+        isDeleted: comment.isDeleted,
+        userInfo: comment.userInfo ? {
+          nickname: comment.userInfo.nickname || '匿名用户',
+          location: comment.userInfo.city ? 
+            `${comment.userInfo.city}${comment.userInfo.region ? ', ' + comment.userInfo.region : ''}` : 
+            '未知位置',
+          country: comment.userInfo.country,
+          deviceType: comment.userInfo.deviceType,
+          browser: comment.userInfo.browserName,
+          ipAddress: comment.userInfo.ipAddress,
+          email: comment.userInfo.email,
+          joinedAt: comment.userInfo.createdAt?.toISOString(),
+        } : null,
+        repliesCount: comment.replies?.length || 0,
+      })),
+      total,
+      hasMore: skip + limit < total,
+      page,
+      limit,
+    };
+  }
+
+  // 删除评论（管理员）
+  async deleteComment(commentId: string, adminUserId: string) {
+    const comment = await this.prisma.interactionComment.findUnique({
+      where: { id: commentId },
+      include: { userInfo: true },
+    });
+
+    if (!comment) {
+      throw new Error('评论不存在');
+    }
+
+    // 软删除评论
+    await this.prisma.interactionComment.update({
+      where: { id: commentId },
+      data: { 
+        isDeleted: true,
+        deletedAt: new Date(),
+      },
+    });
+
+    // 同时删除所有回复
+    await this.prisma.interactionComment.updateMany({
+      where: { parentId: commentId },
+      data: { 
+        isDeleted: true,
+        deletedAt: new Date(),
+      },
+    });
+
+    // 更新用户统计
+    if (comment.userInfo) {
+      const deletedCount = await this.prisma.interactionComment.count({
+        where: { 
+          parentId: commentId,
+          isDeleted: true,
+        },
+      });
+
+      await this.prisma.userInfo.update({
+        where: { id: comment.userInfo.id },
+        data: { totalComments: { decrement: deletedCount + 1 } },
+      });
+    }
+
+    // 记录管理员操作日志
+    await this.prisma.activityLog.create({
+      data: {
+        action: 'admin_delete_comment',
+        targetType: comment.targetType,
+        targetId: comment.targetId,
+        fingerprint: `admin_${adminUserId}`,
+        userInfoId: null,
+        ipAddress: null,
+        userAgent: 'Admin Panel',
+        details: JSON.stringify({ 
+          commentId,
+          adminUserId,
+          timestamp: new Date().toISOString() 
+        }),
+      },
+    });
+
+    return { success: true, message: '评论已删除' };
+  }
+
+  // 删除点赞（管理员）
+  async deleteLike(likeId: string, adminUserId: string) {
+    const like = await this.prisma.like.findUnique({
+      where: { id: likeId },
+      include: { userInfo: true },
+    });
+
+    if (!like) {
+      throw new Error('点赞不存在');
+    }
+
+    await this.prisma.like.delete({
+      where: { id: likeId },
+    });
+
+    // 更新用户统计
+    if (like.userInfo) {
+      await this.prisma.userInfo.update({
+        where: { id: like.userInfo.id },
+        data: { totalLikes: { decrement: 1 } },
+      });
+    }
+
+    // 记录管理员操作日志
+    await this.prisma.activityLog.create({
+      data: {
+        action: 'admin_delete_like',
+        targetType: like.targetType,
+        targetId: like.targetId,
+        fingerprint: `admin_${adminUserId}`,
+        userInfoId: null,
+        ipAddress: null,
+        userAgent: 'Admin Panel',
+        details: JSON.stringify({ 
+          likeId,
+          adminUserId,
+          timestamp: new Date().toISOString() 
+        }),
+      },
+    });
+
+    return { success: true, message: '点赞已删除' };
+  }
+
+  // 获取管理统计信息
+  async getAdminStats() {
+    const [
+      totalLikes,
+      totalComments,
+      totalUsers,
+      todayLikes,
+      todayComments,
+      topTargets,
+      recentActivity,
+    ] = await Promise.all([
+      // 总点赞数
+      this.prisma.like.count(),
+      // 总评论数
+      this.prisma.interactionComment.count({ where: { isDeleted: false } }),
+      // 总用户数
+      this.prisma.userInfo.count(),
+      // 今日点赞数
+      this.prisma.like.count({
+        where: {
+          createdAt: {
+            gte: new Date(new Date().setHours(0, 0, 0, 0)),
+          },
+        },
+      }),
+      // 今日评论数
+      this.prisma.interactionComment.count({
+        where: {
+          isDeleted: false,
+          createdAt: {
+            gte: new Date(new Date().setHours(0, 0, 0, 0)),
+          },
+        },
+      }),
+      // 热门目标
+      this.prisma.like.groupBy({
+        by: ['targetType', 'targetId'],
+        _count: { id: true },
+        orderBy: { _count: { id: 'desc' } },
+        take: 10,
+      }),
+      // 最近活动
+      this.prisma.activityLog.findMany({
+        where: {
+          action: { in: ['like', 'unlike', 'comment'] },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+        select: {
+          action: true,
+          targetType: true,
+          targetId: true,
+          createdAt: true,
+          fingerprint: true,
+        },
+      }),
+    ]);
+
+    return {
+      overview: {
+        totalLikes,
+        totalComments,
+        totalUsers,
+        todayLikes,
+        todayComments,
+      },
+      topTargets: topTargets.map(target => ({
+        targetType: target.targetType,
+        targetId: target.targetId,
+        likesCount: target._count.id,
+      })),
+      recentActivity: recentActivity.map(activity => ({
+        action: activity.action,
+        targetType: activity.targetType,
+        targetId: activity.targetId,
+        timestamp: activity.createdAt.toISOString(),
+        fingerprint: activity.fingerprint,
+      })),
+    };
+  }
 } 

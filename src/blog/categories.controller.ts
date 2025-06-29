@@ -33,11 +33,13 @@ export class CategoriesController {
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
     @Query('search') search?: string,
+    @Query('status') status?: string,
   ) {
     return this.categoriesService.findAll({
       page: parseInt(page),
       limit: parseInt(limit),
       search,
+      status: status || 'enabled',
     });
   }
 
@@ -57,5 +59,22 @@ export class CategoriesController {
   @RequirePermissions('category.delete')
   remove(@Param('id') id: string) {
     return this.categoriesService.remove(id);
+  }
+
+  // 管理后台专用接口 - 支持查看所有状态的分类
+  @Get('admin/list')
+  @RequirePermissions('category.read')
+  findAllForAdmin(
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.categoriesService.findAll({
+      page: parseInt(page),
+      limit: parseInt(limit),
+      search,
+      status, // 管理后台可以查看所有状态
+    });
   }
 } 

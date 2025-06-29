@@ -41,18 +41,14 @@ model User {
   isSuperAdmin Boolean   @default(false)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
-
-  roleId String? @db.Char(36)
-  role   Role?   @relation(fields: [roleId], references: [id])
-  
-  // 博客关联
-  articles Article[]
-  comments Comment[]
-  
-  // 文件关联
-  files File[]
+  roleId       String?   @db.Char(36)
+  articles     Article[]
+  comments     Comment[]
+  files        File[]
+  role         Role?     @relation(fields: [roleId], references: [id])
 
   @@index([mail])
+  @@index([roleId], map: "users_roleId_fkey")
   @@map("users")
 }
 
@@ -66,24 +62,21 @@ model VerificationCode {
   @@map("verification_codes")
 }
 
-// 博客相关模型
 model Category {
-  id          String    @id @default(uuid())
-  name        String    @unique
-  description String?
-  slug        String    @unique
-  parentId    String?
-  status      String    @default("enabled") // enabled, disabled
-  sort        Int       @default(0)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  // 自关联
-  parentCategory Category? @relation("CategoryParent", fields: [parentId], references: [id])
+  id              String     @id @default(uuid())
+  name            String     @unique
+  description     String?
+  slug            String     @unique
+  parentId        String?
+  status          String     @default("enabled")
+  sort            Int        @default(0)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  articles        Article[]
+  parentCategory  Category?  @relation("CategoryParent", fields: [parentId], references: [id])
   childCategories Category[] @relation("CategoryParent")
-  
-  articles    Article[]
 
+  @@index([parentId], map: "categories_parentId_fkey")
   @@map("categories")
 }
 
@@ -92,40 +85,38 @@ model Tag {
   name        String       @unique
   slug        String       @unique
   description String?
-  color       String?      // 标签颜色
+  color       String?
   sort        Int          @default(0)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
-  
   articles    ArticleTag[]
 
   @@map("tags")
 }
 
 model Article {
-  id          String    @id @default(uuid())
+  id          String       @id @default(uuid())
   title       String
-  content     String    @db.Text
+  content     String       @db.Text
   excerpt     String?
   coverImage  String?
-  slug        String    @unique
-  published   Boolean   @default(false)
-  views       Int       @default(0)
-  readTime    Int?      // 阅读时间（分钟）
+  slug        String       @unique
+  published   Boolean      @default(false)
+  views       Int          @default(0)
+  readTime    Int?
   publishedAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  // 关联
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   authorId    String
-  author      User      @relation(fields: [authorId], references: [id])
   categoryId  String
-  category    Category  @relation(fields: [categoryId], references: [id])
-  
   tags        ArticleTag[]
+  author      User         @relation(fields: [authorId], references: [id])
+  category    Category     @relation(fields: [categoryId], references: [id])
   comments    Comment[]
-  likes       Like[]    // 添加点赞关联
+  likes       Like[]
 
+  @@index([authorId], map: "articles_authorId_fkey")
+  @@index([categoryId], map: "articles_categoryId_fkey")
   @@map("articles")
 }
 
@@ -133,285 +124,227 @@ model ArticleTag {
   id        String  @id @default(uuid())
   articleId String
   tagId     String
-  
   article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
   tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
-  
+
   @@unique([articleId, tagId])
+  @@index([tagId], map: "article_tags_tagId_fkey")
   @@map("article_tags")
 }
 
 model Comment {
-  id        String    @id @default(uuid())
-  content   String    @db.Text
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  
-  // 关联
-  articleId String
-  article   Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  authorId  String?
-  author    User?     @relation(fields: [authorId], references: [id])
-  
-  // 游客评论
+  id         String    @id @default(uuid())
+  content    String    @db.Text
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  articleId  String
+  authorId   String?
   guestName  String?
   guestEmail String?
-  
-  // 回复功能
   parentId   String?
+  article    Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  author     User?     @relation(fields: [authorId], references: [id])
   parent     Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
   replies    Comment[] @relation("CommentReplies")
 
+  @@index([articleId], map: "comments_articleId_fkey")
+  @@index([authorId], map: "comments_authorId_fkey")
+  @@index([parentId], map: "comments_parentId_fkey")
   @@map("comments")
 }
 
-// 文件管理相关模型
 model FileFolder {
-  id        String   @id @default(uuid())
+  id        String       @id @default(uuid())
   name      String
-  path      String   @unique  // 文件夹路径
+  path      String       @unique
   parentId  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  // 自关联
-  parent   FileFolder?  @relation("FolderParent", fields: [parentId], references: [id])
-  children FileFolder[] @relation("FolderParent")
-  
-  // 文件关联
-  files File[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  parent    FileFolder?  @relation("FolderParent", fields: [parentId], references: [id])
+  children  FileFolder[] @relation("FolderParent")
+  files     File[]
 
+  @@index([parentId], map: "file_folders_parentId_fkey")
   @@map("file_folders")
 }
 
 model File {
-  id          String     @id @default(uuid())
-  name        String     // 原始文件名
-  filename    String     // 存储文件名
-  path        String     // 又拍云存储路径
-  url         String     // 访问URL
-  size        Int        // 文件大小（字节）
-  mimetype    String     // MIME类型
-  extension   String     // 文件扩展名
-  folderId    String?    // 所属文件夹
-  uploadedBy  String     // 上传用户ID
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  
-  // 关联
-  folder   FileFolder? @relation(fields: [folderId], references: [id])
-  uploader User        @relation(fields: [uploadedBy], references: [id])
+  id         String      @id @default(uuid())
+  name       String
+  filename   String
+  path       String
+  url        String
+  size       Int
+  mimetype   String
+  extension  String
+  folderId   String?
+  uploadedBy String
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  folder     FileFolder? @relation(fields: [folderId], references: [id])
+  uploader   User        @relation(fields: [uploadedBy], references: [id])
 
+  @@index([folderId], map: "files_folderId_fkey")
+  @@index([uploadedBy], map: "files_uploadedBy_fkey")
   @@map("files")
 }
 
-// 留言墙便签
 model StickyNote {
-  id       String @id @default(uuid())
-  content  String @db.Text
-  author   String
-  category String?
-  color    String @default("#fbbf24") // 默认黄色
-  likes    Like[]
-  comments InteractionComment[]
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  id        String               @id @default(uuid())
+  content   String               @db.Text
+  author    String
+  category  String?
+  color     String               @default("#fbbf24")
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  comments  InteractionComment[]
+  likes     Like[]
+
   @@map("sticky_notes")
 }
 
-// 图库图片
 model GalleryImage {
-  id          String @id @default(uuid())
+  id          String               @id @default(uuid())
   title       String
-  description String? @db.Text
+  description String?              @db.Text
   imageUrl    String
   category    String?
-  tags        String? // JSON格式存储标签
-  likes       Like[]
+  tags        String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
   comments    InteractionComment[]
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  likes       Like[]
+
   @@map("gallery_images")
 }
 
-// 统一的点赞表
 model Like {
-  id           String    @id @default(uuid())
-  fingerprint  String    // 浏览器指纹
-  
-  // 关联的内容类型和ID
-  targetType   String    // 'article', 'sticky_note', 'gallery_image'
-  targetId     String    // 对应内容的ID
-  
-  // 关联关系（可选，用于查询优化）
-  articleId       String?
-  stickyNoteId    String?
-  galleryImageId  String?
-  
-  article      Article?      @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  stickyNote   StickyNote?   @relation(fields: [stickyNoteId], references: [id], onDelete: Cascade)
-  galleryImage GalleryImage? @relation(fields: [galleryImageId], references: [id], onDelete: Cascade)
-  
-  // 用户信息收集
-  userInfo     UserInfo? @relation(fields: [userInfoId], references: [id])
-  userInfoId   String?
-  
-  createdAt DateTime @default(now())
-  
-  // 确保同一指纹对同一内容只能点赞一次
+  id             String        @id @default(uuid())
+  fingerprint    String
+  targetType     String
+  targetId       String
+  articleId      String?
+  stickyNoteId   String?
+  galleryImageId String?
+  userInfoId     String?
+  createdAt      DateTime      @default(now())
+  article        Article?      @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  galleryImage   GalleryImage? @relation(fields: [galleryImageId], references: [id], onDelete: Cascade)
+  stickyNote     StickyNote?   @relation(fields: [stickyNoteId], references: [id], onDelete: Cascade)
+  userInfo       UserInfo?     @relation(fields: [userInfoId], references: [id])
+
   @@unique([fingerprint, targetType, targetId])
+  @@index([articleId], map: "likes_articleId_fkey")
+  @@index([galleryImageId], map: "likes_galleryImageId_fkey")
+  @@index([stickyNoteId], map: "likes_stickyNoteId_fkey")
+  @@index([userInfoId], map: "likes_userInfoId_fkey")
   @@map("likes")
 }
 
-// 统一的评论表（用于留言墙和图库）
 model InteractionComment {
-  id           String    @id @default(uuid())
-  content      String    @db.Text
-  author       String?   // 可选的作者名称
-  email        String?   // 可选的邮箱
-  fingerprint  String    // 浏览器指纹
-  
-  // 关联的内容类型和ID
-  targetType   String    // 'sticky_note', 'gallery_image'
-  targetId     String    // 对应内容的ID
-  
-  // 关联关系（可选，用于查询优化）
-  stickyNoteId    String?
-  galleryImageId  String?
-  
-  stickyNote   StickyNote?   @relation(fields: [stickyNoteId], references: [id], onDelete: Cascade)
-  galleryImage GalleryImage? @relation(fields: [galleryImageId], references: [id], onDelete: Cascade)
-  
-  // 回复功能
-  parentId     String?
-  parent       InteractionComment? @relation("InteractionCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies      InteractionComment[] @relation("InteractionCommentReplies")
-  
-  // 用户信息收集
-  userInfo     UserInfo? @relation(fields: [userInfoId], references: [id])
-  userInfoId   String?
-  
-  // 状态管理
-  isApproved   Boolean  @default(true)  // 是否审核通过
-  isDeleted    Boolean  @default(false) // 软删除
-  deletedAt    DateTime?
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  id             String               @id @default(uuid())
+  content        String               @db.Text
+  author         String?
+  email          String?
+  fingerprint    String
+  targetType     String
+  targetId       String
+  stickyNoteId   String?
+  galleryImageId String?
+  parentId       String?
+  userInfoId     String?
+  isApproved     Boolean              @default(true)
+  isDeleted      Boolean              @default(false)
+  deletedAt      DateTime?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  galleryImage   GalleryImage?        @relation(fields: [galleryImageId], references: [id], onDelete: Cascade)
+  parent         InteractionComment?  @relation("InteractionCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies        InteractionComment[] @relation("InteractionCommentReplies")
+  stickyNote     StickyNote?          @relation(fields: [stickyNoteId], references: [id], onDelete: Cascade)
+  userInfo       UserInfo?            @relation(fields: [userInfoId], references: [id])
+
+  @@index([galleryImageId], map: "interaction_comments_galleryImageId_fkey")
+  @@index([parentId], map: "interaction_comments_parentId_fkey")
+  @@index([stickyNoteId], map: "interaction_comments_stickyNoteId_fkey")
+  @@index([userInfoId], map: "interaction_comments_userInfoId_fkey")
   @@map("interaction_comments")
 }
 
-// 用户信息收集表
 model UserInfo {
-  id           String @id @default(uuid())
-  fingerprint  String @unique // 浏览器指纹
-  
-  // 基本信息
-  ipAddress    String?
-  userAgent    String? @db.Text
-  
-  // 地理位置信息
-  country      String?
-  region       String?
-  city         String?
-  latitude     Float?
-  longitude    Float?
-  timezone     String?
-  
-  // 设备信息
-  deviceType   String? // 'desktop', 'mobile', 'tablet'
-  deviceModel  String?
-  osName       String?
-  osVersion    String?
-  browserName  String?
+  id             String               @id @default(uuid())
+  fingerprint    String               @unique
+  ipAddress      String?
+  userAgent      String?              @db.Text
+  country        String?
+  region         String?
+  city           String?
+  latitude       Float?
+  longitude      Float?
+  timezone       String?
+  deviceType     String?
+  deviceModel    String?
+  osName         String?
+  osVersion      String?
+  browserName    String?
   browserVersion String?
-  
-  // 屏幕信息
-  screenWidth  Int?
-  screenHeight Int?
-  
-  // 语言偏好
-  language     String?
-  languages    String? // JSON格式存储多语言
-  
-  // 用户可选信息
-  nickname     String?
-  email        String?
-  
-  // 关联关系
-  likes        Like[]
-  comments     InteractionComment[]
-  
-  // 统计信息
-  totalLikes   Int @default(0)
-  totalComments Int @default(0)
-  lastActiveAt DateTime @default(now())
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  screenWidth    Int?
+  screenHeight   Int?
+  language       String?
+  languages      String?
+  nickname       String?
+  email          String?
+  totalLikes     Int                  @default(0)
+  totalComments  Int                  @default(0)
+  lastActiveAt   DateTime             @default(now())
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  comments       InteractionComment[]
+  likes          Like[]
+
   @@map("user_info")
 }
 
-// 管理员用户表
 model Admin {
-  id       String @id @default(uuid())
-  username String @unique
-  password String // 加密后的密码
-  email    String @unique
-  role     String @default("admin") // 'admin', 'super_admin'
-  isActive Boolean @default(true)
-  
-  // 权限控制
-  permissions String? @db.Text // JSON格式存储权限列表
-  
-  // 登录记录
+  id          String    @id @default(uuid())
+  username    String    @unique
+  password    String
+  email       String    @unique
+  role        String    @default("admin")
+  isActive    Boolean   @default(true)
+  permissions String?   @db.Text
   lastLoginAt DateTime?
-  loginCount  Int @default(0)
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  loginCount  Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
   @@map("admins")
 }
 
-// 系统配置表
 model SystemConfig {
-  id    String @id @default(uuid())
-  key   String @unique
-  value String @db.Text
-  type  String @default("string") // 'string', 'number', 'boolean', 'json'
-  description String? @db.Text
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String   @db.Text
+  type        String   @default("string")
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
   @@map("system_config")
 }
 
-// 操作日志表
 model ActivityLog {
-  id         String @id @default(uuid())
-  action     String // 操作类型：'like', 'unlike', 'comment', 'delete_comment'
-  targetType String // 目标类型：'article', 'sticky_note', 'gallery_image'
-  targetId   String // 目标ID
-  
-  // 操作者信息
+  id          String   @id @default(uuid())
+  action      String
+  targetType  String
+  targetId    String
   fingerprint String?
   userInfoId  String?
   adminId     String?
-  
-  // 操作详情
-  details    String? @db.Text // JSON格式存储详细信息
-  ipAddress  String?
-  userAgent  String? @db.Text
-  
-  createdAt DateTime @default(now())
-  
+  details     String?  @db.Text
+  ipAddress   String?
+  userAgent   String?  @db.Text
+  createdAt   DateTime @default(now())
+
   @@map("activity_logs")
 }
