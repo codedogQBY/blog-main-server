@@ -46,6 +46,8 @@ export class PermissionsService {
   }
 
   async create(data: { name: string; code: string }): Promise<Permission> {
+    const exist = await this.prisma.permission.findUnique({ where: { code: data.code } });
+    if (exist) return exist;
     return this.prisma.permission.create({
       data,
     });

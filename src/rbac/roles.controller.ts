@@ -32,14 +32,24 @@ export class RolesController {
 
   @Post()
   @Permissions('role.create')
-  create(@Body() dto: { name: string }) {
-    return this.service.create(dto.name);
+  create(@Body() dto: any) {
+    // 处理前端传来的嵌套数据结构
+    const data = dto.name && typeof dto.name === 'object' ? dto.name : dto;
+    return this.service.create({
+      name: data.name,
+      permissionIds: data.permissionIds
+    });
   }
 
   @Put(':id')
   @Permissions('role.update')
-  update(@Param('id') id: string, @Body() dto: { name: string }) {
-    return this.service.update(id, dto.name);
+  update(@Param('id') id: string, @Body() dto: any) {
+    // 处理前端传来的嵌套数据结构
+    const data = dto.name && typeof dto.name === 'object' ? dto.name : dto;
+    return this.service.update(id, {
+      name: data.name,
+      permissionIds: data.permissionIds
+    });
   }
 
   @Delete(':id')

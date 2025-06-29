@@ -5,6 +5,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { UsersService } from '../users/users.service';
+import { Public } from './public.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -13,16 +14,19 @@ export class AuthController {
     private readonly usersService: UsersService
   ) {}
 
+  @Public()
   @Post('register')
   async register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
 
+  @Public()
   @Post('send-code')
   async sendCode(@Body() dto: SendCodeDto) {
     return this.authService.sendCode(dto.mail);
   }
 
+  @Public()
   @Post('login')
   async login(@Body() dto: LoginDto) {
     return this.authService.login(dto);

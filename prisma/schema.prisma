@@ -8,10 +8,12 @@ datasource db {
 }
 
 model Role {
-  id    String           @id @default(uuid()) @db.Char(36)
-  name  String           @unique @db.VarChar(50)
-  perms RolePermission[]
-  users User[]
+  id        String           @id @default(uuid()) @db.Char(36)
+  name      String           @unique @db.VarChar(50)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @default(now()) @updatedAt
+  perms     RolePermission[]
+  users     User[]
 }
 
 model Permission {
