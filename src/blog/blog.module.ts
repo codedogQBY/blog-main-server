@@ -1,36 +1,69 @@
 import { Module } from '@nestjs/common';
+import { PrismaModule } from '../prisma/prisma.module';
+
+// Articles
 import { ArticlesController } from './articles.controller';
 import { ArticlesService } from './articles.service';
+
+// Categories
 import { CategoriesController } from './categories.controller';
 import { CategoriesService } from './categories.service';
+
+// Tags
 import { TagsController } from './tags.controller';
 import { TagsService } from './tags.service';
+
+// Gallery
+import { GalleryController } from './gallery.controller';
+import { GalleryService } from './gallery.service';
+
+// Gallery Categories
+import { GalleryCategoriesController } from './gallery-categories.controller';
+import { GalleryCategoriesService } from './gallery-categories.service';
+
+// Interactions
 import { InteractionsController } from './interactions.controller';
 import { InteractionsService } from './interactions.service';
+
+// Sticky Notes
 import { StickyNotesController } from './sticky-notes.controller';
 import { StickyNotesService } from './sticky-notes.service';
+
+// Diary
 import { DiaryController } from './diary.controller';
 import { DiaryService } from './diary.service';
-import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
   imports: [PrismaModule],
   controllers: [
-    ArticlesController, 
-    CategoriesController, 
+    ArticlesController,
+    CategoriesController,
     TagsController,
+    GalleryController,
+    GalleryCategoriesController,
     InteractionsController,
     StickyNotesController,
-    DiaryController
+    DiaryController,
   ],
   providers: [
-    ArticlesService, 
-    CategoriesService, 
+    ArticlesService,
+    CategoriesService,
     TagsService,
+    GalleryService,
+    GalleryCategoriesService,
     InteractionsService,
     StickyNotesService,
-    DiaryService
+    DiaryService,
   ],
-  exports: [ArticlesService, CategoriesService, TagsService, StickyNotesService, DiaryService],
+  exports: [
+    ArticlesService,
+    CategoriesService,
+    TagsService,
+    GalleryService,
+    GalleryCategoriesService,
+    InteractionsService,
+    StickyNotesService,
+    DiaryService,
+  ],
 })
 export class BlogModule {} 

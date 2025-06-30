@@ -172,10 +172,10 @@ model FileFolder {
 
 model File {
   id         String      @id @default(uuid())
-  name       String
-  filename   String
-  path       String
-  url        String
+  name       String      @db.Text
+  filename   String      @db.Text
+  path       String      @db.Text
+  url        String      @db.Text
   size       Int
   mimetype   String
   extension  String
@@ -249,18 +249,36 @@ model DiaryWeatherConfig {
   @@map("diary_weather_config")
 }
 
-model GalleryImage {
+model Gallery {
   id          String               @id @default(uuid())
   title       String
   description String?              @db.Text
-  imageUrl    String
   category    String?
-  tags        String?
+  tags        String?              @db.Text // JSON字符串
+  coverImage  String?              // 封面图片URL
+  status      String               @default("published") // published, draft
+  sort        Int                  @default(0)
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
-  comments    InteractionComment[]
-  likes       Like[]
+  images      GalleryImage[]       // 图集包含的图片
+  comments    InteractionComment[] @relation("GalleryComments")
+  likes       Like[]               @relation("GalleryLikes")
 
+  @@map("galleries")
+}
+
+model GalleryImage {
+  id          String               @id @default(uuid())
+  title       String?
+  description String?              @db.Text
+  imageUrl    String
+  sort        Int                  @default(0)
+  galleryId   String
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  gallery     Gallery              @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+
+  @@index([galleryId], map: "gallery_images_galleryId_fkey")
   @@map("gallery_images")
 }
 
@@ -271,17 +289,17 @@ model Like {
   targetId       String
   articleId      String?
   stickyNoteId   String?
-  galleryImageId String?
+  galleryId      String?
   userInfoId     String?
   createdAt      DateTime      @default(now())
   article        Article?      @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  galleryImage   GalleryImage? @relation(fields: [galleryImageId], references: [id], onDelete: Cascade)
+  gallery        Gallery?      @relation("GalleryLikes", fields: [galleryId], references: [id], onDelete: Cascade)
   stickyNote     StickyNote?   @relation(fields: [stickyNoteId], references: [id], onDelete: Cascade)
   userInfo       UserInfo?     @relation(fields: [userInfoId], references: [id])
 
   @@unique([fingerprint, targetType, targetId])
   @@index([articleId], map: "likes_articleId_fkey")
-  @@index([galleryImageId], map: "likes_galleryImageId_fkey")
+  @@index([galleryId], map: "likes_galleryId_fkey")
   @@index([stickyNoteId], map: "likes_stickyNoteId_fkey")
   @@index([userInfoId], map: "likes_userInfoId_fkey")
   @@map("likes")
@@ -296,7 +314,7 @@ model InteractionComment {
   targetType     String
   targetId       String
   stickyNoteId   String?
-  galleryImageId String?
+  galleryId      String?
   parentId       String?
   userInfoId     String?
   isApproved     Boolean              @default(true)
@@ -304,13 +322,13 @@ model InteractionComment {
   deletedAt      DateTime?
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
-  galleryImage   GalleryImage?        @relation(fields: [galleryImageId], references: [id], onDelete: Cascade)
+  gallery        Gallery?             @relation("GalleryComments", fields: [galleryId], references: [id], onDelete: Cascade)
   parent         InteractionComment?  @relation("InteractionCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies        InteractionComment[] @relation("InteractionCommentReplies")
   stickyNote     StickyNote?          @relation(fields: [stickyNoteId], references: [id], onDelete: Cascade)
   userInfo       UserInfo?            @relation(fields: [userInfoId], references: [id])
 
-  @@index([galleryImageId], map: "interaction_comments_galleryImageId_fkey")
+  @@index([galleryId], map: "interaction_comments_galleryId_fkey")
   @@index([parentId], map: "interaction_comments_parentId_fkey")
   @@index([stickyNoteId], map: "interaction_comments_stickyNoteId_fkey")
   @@index([userInfoId], map: "interaction_comments_userInfoId_fkey")
