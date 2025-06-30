@@ -9,6 +9,8 @@ import { InteractionsController } from './interactions.controller';
 import { InteractionsService } from './interactions.service';
 import { StickyNotesController } from './sticky-notes.controller';
 import { StickyNotesService } from './sticky-notes.service';
+import { DiaryController } from './diary.controller';
+import { DiaryService } from './diary.service';
 import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
@@ -18,15 +20,17 @@ import { PrismaModule } from '../prisma/prisma.module';
     CategoriesController, 
     TagsController,
     InteractionsController,
-    StickyNotesController
+    StickyNotesController,
+    DiaryController
   ],
   providers: [
     ArticlesService, 
     CategoriesService, 
     TagsService,
     InteractionsService,
-    StickyNotesService
+    StickyNotesService,
+    DiaryService
   ],
-  exports: [ArticlesService, CategoriesService, TagsService, StickyNotesService],
+  exports: [ArticlesService, CategoriesService, TagsService, StickyNotesService, DiaryService],
 })
 export class BlogModule {} 

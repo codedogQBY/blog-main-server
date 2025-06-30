@@ -206,6 +206,49 @@ model StickyNote {
   @@map("sticky_notes")
 }
 
+model DiaryNote {
+  id        String   @id @default(uuid())
+  title     String   @db.VarChar(200)
+  content   String   @db.Text
+  excerpt   String?  @db.VarChar(500)
+  images    String?  @db.Text // JSON字符串存储图片URL数组
+  weather   String   @default("sunny") // sunny, cloudy, rainy, snowy, partly-cloudy
+  mood      Int      @default(0) // 心情值 0-5
+  status    String   @default("public") // public, private
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("diary_notes")
+}
+
+model DiarySignature {
+  id           String   @id @default(uuid())
+  signatureName String  @db.VarChar(50)
+  fontFamily   String   @default("'Kalam', cursive")
+  fontSize     String   @default("2xl")
+  color        String   @default("gray-400")
+  rotation     String   @default("12") // 旋转角度
+  isActive     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("diary_signatures")
+}
+
+model DiaryWeatherConfig {
+  id           String   @id @default(uuid())
+  weatherType  String   @unique // sunny, cloudy, rainy, snowy, partly-cloudy
+  weatherName  String   @db.VarChar(32)
+  icon         String?  @db.VarChar(100)
+  description  String?  @db.VarChar(200)
+  isEnabled    Boolean  @default(true)
+  sort         Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("diary_weather_config")
+}
+
 model GalleryImage {
   id          String               @id @default(uuid())
   title       String
