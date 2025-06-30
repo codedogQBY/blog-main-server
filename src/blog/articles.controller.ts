@@ -51,7 +51,7 @@ export class ArticlesController {
       categorySlug = category?.slug;
     }
 
-    return this.articlesService.findAll({
+    return this.articlesService.findAllForAdmin({
       page: parseInt(page),
       limit: parseInt(pageSize),
       search: title,

@@ -71,12 +71,116 @@ export class ArticlesService {
 
     const where: any = {};
 
-    // 只有管理员可以看到未发布的文章
+    // 前台展示：只有管理员可以看到未发布的文章
     if (published !== undefined) {
       where.published = published;
     } else {
       where.published = true; // 默认只显示已发布的文章
     }
+
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { excerpt: { contains: search, mode: 'insensitive' } },
+        { content: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (category) {
+      where.category = {
+        slug: category,
+      };
+    }
+
+    if (categoryId) {
+      where.categoryId = categoryId;
+    }
+
+    if (tag) {
+      where.tags = {
+        some: {
+          tag: {
+            slug: tag,
+          },
+        },
+      };
+    }
+
+    const [articles, total] = await Promise.all([
+      this.prisma.article.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          author: {
+            select: { id: true, name: true },
+          },
+          category: true,
+          tags: {
+            include: { tag: true },
+          },
+          _count: {
+            select: { 
+              likes: true 
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.article.count({ where }),
+    ]);
+
+    // 为每篇文章单独统计评论数量（从interaction_comments表）
+    const articlesWithCommentCount = await Promise.all(
+      articles.map(async (article) => {
+        const commentCount = await this.prisma.interactionComment.count({
+          where: {
+            targetType: 'article',
+            targetId: article.id,
+            isDeleted: false,
+          },
+        });
+
+        return {
+          ...article,
+          _count: {
+            ...article._count,
+            comments: commentCount,
+          },
+        };
+      })
+    );
+
+    return {
+      data: articlesWithCommentCount,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async findAllForAdmin(params: {
+    page: number;
+    limit: number;
+    search?: string;
+    category?: string;
+    categoryId?: string;
+    tag?: string;
+    published?: boolean;
+  }) {
+    const { page, limit, search, category, categoryId, tag, published } = params;
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+
+    // 管理后台：只有明确指定published时才过滤，否则显示所有文章
+    if (published !== undefined) {
+      where.published = published;
+    }
+    // 注意：管理后台不设置默认的published过滤条件
 
     if (search) {
       where.OR = [

@@ -134,16 +134,27 @@ export class InteractionsService {
         fingerprint,
         targetType,
         targetId,
-        userInfoId: userInfoRecord.id,
+        userInfo: {
+          connect: { id: userInfoRecord.id }
+        },
       };
 
       // 根据 targetType 设置对应的关联字段
       if (targetType === 'article') {
-        likeData.articleId = targetId;
+        likeData.article = { connect: { id: targetId } };
       } else if (targetType === 'sticky_note') {
-        likeData.stickyNoteId = targetId;
+        likeData.stickyNote = { connect: { id: targetId } };
+      } else if (targetType === 'gallery') {
+        likeData.gallery = { connect: { id: targetId } };
       } else if (targetType === 'gallery_image') {
-        likeData.galleryImageId = targetId;
+        // 对于图片，需要先找到所属的gallery
+        const galleryImage = await this.prisma.galleryImage.findUnique({
+          where: { id: targetId },
+          select: { galleryId: true }
+        });
+        if (galleryImage) {
+          likeData.gallery = { connect: { id: galleryImage.galleryId } };
+        }
       }
 
       await this.prisma.like.create({ data: likeData });
@@ -209,21 +220,32 @@ export class InteractionsService {
       fingerprint,
       targetType,
       targetId,
-      userInfoId: userInfoRecord.id,
+      userInfo: {
+        connect: { id: userInfoRecord.id }
+      },
       author: userInfo.nickname,
       email: userInfo.email,
     };
 
     // 设置父评论
     if (parentId) {
-      commentData.parentId = parentId;
+      commentData.parent = { connect: { id: parentId } };
     }
 
     // 根据 targetType 设置对应的关联字段
     if (targetType === 'sticky_note') {
-      commentData.stickyNoteId = targetId;
+      commentData.stickyNote = { connect: { id: targetId } };
+    } else if (targetType === 'gallery') {
+      commentData.gallery = { connect: { id: targetId } };
     } else if (targetType === 'gallery_image') {
-      commentData.galleryImageId = targetId;
+      // 对于图片，需要先找到所属的gallery
+      const galleryImage = await this.prisma.galleryImage.findUnique({
+        where: { id: targetId },
+        select: { galleryId: true }
+      });
+      if (galleryImage) {
+        commentData.gallery = { connect: { id: galleryImage.galleryId } };
+      }
     }
 
     const comment = await this.prisma.interactionComment.create({

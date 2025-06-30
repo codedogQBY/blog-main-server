@@ -74,7 +74,7 @@ export class GalleryService {
         include: {
           images: {
             orderBy: { sort: 'asc' },
-            take: 1, // 只取第一张作为封面
+            // 返回所有图片以支持轮播功能
           },
           _count: {
             select: {
