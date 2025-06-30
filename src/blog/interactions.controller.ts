@@ -43,6 +43,13 @@ export class InteractionsController {
     return this.interactionsService.getInteractionStats(dto);
   }
 
+  @Get('location')
+  @Public()
+  async getLocation(@Request() req) {
+    const ip = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || '127.0.0.1';
+    return this.interactionsService.getUserLocation(ip);
+  }
+
   // 管理接口
   @Get('admin/likes')
   @UseGuards(JwtAuthGuard)

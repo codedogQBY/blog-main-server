@@ -168,8 +168,9 @@ export class UpyunService {
   generateFilePath(originalName: string, folder: string = ''): string {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 8);
-    const extension = originalName.split('.').pop();
-    const filename = `${timestamp}_${random}.${extension}`;
+    
+    // 保留原始文件名，只在前面添加时间戳和随机数避免重名
+    const filename = `${timestamp}_${random}_${originalName}`;
     
     if (folder) {
       // 确保文件夹路径格式正确
