@@ -120,7 +120,9 @@ export class ArticlesService {
             include: { tag: true },
           },
           _count: {
-            select: { comments: true },
+            select: { 
+              likes: true 
+            },
           },
         },
         orderBy: { createdAt: 'desc' },
@@ -128,8 +130,29 @@ export class ArticlesService {
       this.prisma.article.count({ where }),
     ]);
 
+    // 为每篇文章单独统计评论数量（从interaction_comments表）
+    const articlesWithCommentCount = await Promise.all(
+      articles.map(async (article) => {
+        const commentCount = await this.prisma.interactionComment.count({
+          where: {
+            targetType: 'article',
+            targetId: article.id,
+            isDeleted: false,
+          },
+        });
+
+        return {
+          ...article,
+          _count: {
+            ...article._count,
+            comments: commentCount,
+          },
+        };
+      })
+    );
+
     return {
-      data: articles,
+      data: articlesWithCommentCount,
       pagination: {
         page,
         limit,
