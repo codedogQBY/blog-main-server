@@ -197,6 +197,7 @@ model StickyNote {
   author    String
   category  String?
   color     String               @default("#fbbf24")
+  status    String               @default("public") // public, private
   createdAt DateTime             @default(now())
   updatedAt DateTime             @updatedAt
   comments  InteractionComment[]

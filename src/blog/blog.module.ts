@@ -7,6 +7,8 @@ import { TagsController } from './tags.controller';
 import { TagsService } from './tags.service';
 import { InteractionsController } from './interactions.controller';
 import { InteractionsService } from './interactions.service';
+import { StickyNotesController } from './sticky-notes.controller';
+import { StickyNotesService } from './sticky-notes.service';
 import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
@@ -15,14 +17,16 @@ import { PrismaModule } from '../prisma/prisma.module';
     ArticlesController, 
     CategoriesController, 
     TagsController,
-    InteractionsController
+    InteractionsController,
+    StickyNotesController
   ],
   providers: [
     ArticlesService, 
     CategoriesService, 
     TagsService,
-    InteractionsService
+    InteractionsService,
+    StickyNotesService
   ],
-  exports: [ArticlesService, CategoriesService, TagsService],
+  exports: [ArticlesService, CategoriesService, TagsService, StickyNotesService],
 })
 export class BlogModule {} 

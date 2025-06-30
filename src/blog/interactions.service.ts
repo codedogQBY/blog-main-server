@@ -137,7 +137,15 @@ export class InteractionsService {
         userInfoId: userInfoRecord.id,
       };
 
-      // 不设置外键关联字段，只使用 targetType 和 targetId 来标识目标
+      // 根据 targetType 设置对应的关联字段
+      if (targetType === 'article') {
+        likeData.articleId = targetId;
+      } else if (targetType === 'sticky_note') {
+        likeData.stickyNoteId = targetId;
+      } else if (targetType === 'gallery_image') {
+        likeData.galleryImageId = targetId;
+      }
+
       await this.prisma.like.create({ data: likeData });
       isLiked = true;
 
@@ -211,7 +219,12 @@ export class InteractionsService {
       commentData.parentId = parentId;
     }
 
-    // 不设置外键关联字段，只使用 targetType 和 targetId 来标识目标
+    // 根据 targetType 设置对应的关联字段
+    if (targetType === 'sticky_note') {
+      commentData.stickyNoteId = targetId;
+    } else if (targetType === 'gallery_image') {
+      commentData.galleryImageId = targetId;
+    }
 
     const comment = await this.prisma.interactionComment.create({
       data: commentData,
