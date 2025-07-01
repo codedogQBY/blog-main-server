@@ -412,3 +412,63 @@ model ActivityLog {
 
   @@map("activity_logs")
 }
+
+model About {
+  id              String          @id @default(uuid())
+  heroAvatar      String?         @db.Text
+  heroSignature   String?         @db.VarChar(200)
+  introTitle      String          @db.VarChar(200)
+  introContent    String          @db.Text // JSON数组存储多段内容
+  introLogo       String?         @db.Text
+  status          String          @default("active") // active, inactive
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  tags            AboutTag[]
+  sections        AboutSection[]
+
+  @@map("about")
+}
+
+model AboutTag {
+  id        String   @id @default(uuid())
+  content   String   @db.VarChar(100)
+  position  String   @default("left") // left, right
+  sort      Int      @default(0)
+  aboutId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  about     About    @relation(fields: [aboutId], references: [id], onDelete: Cascade)
+
+  @@index([aboutId], map: "about_tags_aboutId_fkey")
+  @@map("about_tags")
+}
+
+model AboutSection {
+  id        String        @id @default(uuid())
+  title     String        @db.VarChar(200)
+  content   String        @db.Text // JSON数组存储多段内容
+  sort      Int           @default(0)
+  aboutId   String
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  about     About         @relation(fields: [aboutId], references: [id], onDelete: Cascade)
+  images    AboutImage[]
+
+  @@index([aboutId], map: "about_sections_aboutId_fkey")
+  @@map("about_sections")
+}
+
+model AboutImage {
+  id        String       @id @default(uuid())
+  src       String       @db.Text
+  alt       String       @db.VarChar(200)
+  caption   String       @db.VarChar(200)
+  sort      Int          @default(0)
+  sectionId String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  section   AboutSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId], map: "about_images_sectionId_fkey")
+  @@map("about_images")
+}

@@ -33,6 +33,10 @@ import { StickyNotesService } from './sticky-notes.service';
 import { DiaryController } from './diary.controller';
 import { DiaryService } from './diary.service';
 
+// About
+import { AboutController } from './about.controller';
+import { AboutService } from './about.service';
+
 @Module({
   imports: [PrismaModule],
   controllers: [
@@ -44,6 +48,7 @@ import { DiaryService } from './diary.service';
     InteractionsController,
     StickyNotesController,
     DiaryController,
+    AboutController,
   ],
   providers: [
     ArticlesService,
@@ -54,6 +59,7 @@ import { DiaryService } from './diary.service';
     InteractionsService,
     StickyNotesService,
     DiaryService,
+    AboutService,
   ],
   exports: [
     ArticlesService,
@@ -64,6 +70,7 @@ import { DiaryService } from './diary.service';
     InteractionsService,
     StickyNotesService,
     DiaryService,
+    AboutService,
   ],
 })
 export class BlogModule {} 
