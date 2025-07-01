@@ -124,9 +124,27 @@ export class FilesService {
 
   // 文件管理
   async uploadFile(file: Express.Multer.File, folderId: string | undefined, userId: string) {
+    // 处理中文文件名编码问题
+    let originalName = file.originalname;
+    
+    try {
+      // 尝试修复可能的latin1编码问题
+      // 一些浏览器/客户端可能以latin1编码发送中文文件名
+      const buffer = Buffer.from(originalName, 'latin1');
+      const utf8Name = buffer.toString('utf8');
+      
+      // 如果转换后包含中文字符且原文件名不包含中文，说明原来编码有问题
+      if (/[\u4e00-\u9fff]/.test(utf8Name) && !/[\u4e00-\u9fff]/.test(originalName)) {
+        originalName = utf8Name;
+        console.log(`文件名编码修复: ${file.originalname} -> ${originalName}`);
+      }
+    } catch (error) {
+      console.warn('文件名编码处理失败:', error);
+    }
+    
     // 生成文件路径
     const folderPath = folderId ? await this.getFolderPath(folderId) : '';
-    const filePath = this.upyun.generateFilePath(file.originalname, folderPath);
+    const filePath = this.upyun.generateFilePath(originalName, folderPath);
 
     // 上传到又拍云
     const uploadResult = await this.upyun.uploadFile(filePath, file.buffer);
@@ -135,10 +153,10 @@ export class FilesService {
     }
 
     // 保存到数据库
-    const extension = file.originalname.split('.').pop()?.toLowerCase() || '';
+    const extension = originalName.split('.').pop()?.toLowerCase() || '';
     return this.prisma.file.create({
       data: {
-        name: file.originalname,
+        name: originalName, // 使用修复后的文件名
         filename: filePath.split('/').pop()!,
         path: filePath,
         url: uploadResult.url!,

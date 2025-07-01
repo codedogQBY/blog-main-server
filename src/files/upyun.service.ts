@@ -160,7 +160,7 @@ export class UpyunService {
   }
 
   /**
-   * 生成唯一文件路径
+   * 生成唯一文件路径（解决中文文件名乱码问题）
    * @param originalName 原始文件名
    * @param folder 文件夹路径
    * @returns 唯一文件路径
@@ -169,8 +169,13 @@ export class UpyunService {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 8);
     
-    // 保留原始文件名，只在前面添加时间戳和随机数避免重名
-    const filename = `${timestamp}_${random}_${originalName}`;
+    // 提取文件扩展名
+    const extension = originalName.split('.').pop()?.toLowerCase() || '';
+    
+    // 生成安全的文件名（避免中文字符导致的乱码问题）
+    // 只使用时间戳、随机数和扩展名，不包含原始文件名
+    // 原始文件名将保存在数据库的name字段中
+    const filename = extension ? `${timestamp}_${random}.${extension}` : `${timestamp}_${random}`;
     
     if (folder) {
       // 确保文件夹路径格式正确
