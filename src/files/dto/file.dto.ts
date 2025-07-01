@@ -1,4 +1,5 @@
-import { IsString, IsOptional, IsNotEmpty, MaxLength, IsUUID } from 'class-validator';
+import { IsString, IsOptional, IsNotEmpty, MaxLength, IsUUID, IsInt, Min, Max } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateFolderDto {
   @IsString()
@@ -51,4 +52,48 @@ export class FileQueryDto {
   @IsString()
   @IsOptional()
   type?: 'image' | 'video' | 'audio' | 'document' | 'other';
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  page?: number = 1;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  @IsOptional()
+  pageSize?: number = 20;
+
+  @IsString()
+  @IsOptional()
+  sortBy?: 'name' | 'size' | 'createdAt' | 'updatedAt' = 'createdAt';
+
+  @IsString()
+  @IsOptional()
+  sortOrder?: 'asc' | 'desc' = 'desc';
+}
+
+export class FolderQueryDto {
+  @IsUUID()
+  @IsOptional()
+  parentId?: string;
+
+  @IsString()
+  @IsOptional()
+  search?: string;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  page?: number = 1;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  @IsOptional()
+  pageSize?: number = 20;
 } 

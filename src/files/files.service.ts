@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpyunService } from './upyun.service';
-import { CreateFolderDto, UpdateFolderDto, UpdateFileDto, FileQueryDto } from './dto/file.dto';
+import { CreateFolderDto, UpdateFolderDto, UpdateFileDto, FileQueryDto, FolderQueryDto } from './dto/file.dto';
 
 @Injectable()
 export class FilesService {
@@ -40,26 +40,102 @@ export class FilesService {
       },
       include: {
         parent: true,
-        children: true,
+        children: {
+          orderBy: { name: 'asc' },
+        },
         _count: {
-          select: { files: true },
+          select: { files: true, children: true },
         },
       },
     });
   }
 
-  async getFolders(parentId?: string) {
-    return this.prisma.fileFolder.findMany({
-      where: { parentId: parentId || null },
+  async getFolders(query: FolderQueryDto) {
+    const where: any = {};
+    
+    if (query.parentId !== undefined) {
+      where.parentId = query.parentId;
+    }
+
+    if (query.search) {
+      where.name = { contains: query.search };
+    }
+
+    const totalCount = await this.prisma.fileFolder.count({ where });
+    
+    const skip = ((query.page || 1) - 1) * (query.pageSize || 20);
+    const take = query.pageSize || 20;
+
+    const folders = await this.prisma.fileFolder.findMany({
+      where,
       include: {
         parent: true,
-        children: true,
+        children: {
+          orderBy: { name: 'asc' },
+          take: 5, // 只显示前几个子文件夹
+        },
         _count: {
-          select: { files: true },
+          select: { files: true, children: true },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { name: 'asc' },
+      skip,
+      take,
     });
+
+    return {
+      data: folders,
+      total: totalCount,
+      page: query.page || 1,
+      pageSize: query.pageSize || 20,
+      totalPages: Math.ceil(totalCount / (query.pageSize || 20)),
+    };
+  }
+
+  // 获取文件夹树结构（不分页，用于导航）
+  async getFolderTree() {
+    const allFolders = await this.prisma.fileFolder.findMany({
+      include: {
+        _count: {
+          select: { files: true, children: true },
+        },
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    // 构建树形结构
+    const buildTree = (parentId: string | null = null) => {
+      return allFolders
+        .filter(folder => folder.parentId === parentId)
+        .map(folder => ({
+          ...folder,
+          children: buildTree(folder.id),
+        }));
+    };
+
+    return buildTree();
+  }
+
+  // 获取文件夹路径面包屑
+  async getFolderBreadcrumb(folderId: string) {
+    const breadcrumb: Array<{ id: string; name: string; parentId: string | null }> = [];
+    let currentId: string | null = folderId;
+
+    while (currentId) {
+      const folder = await this.prisma.fileFolder.findUnique({
+        where: { id: currentId },
+        select: { id: true, name: true, parentId: true },
+      });
+      
+      if (folder) {
+        breadcrumb.unshift(folder);
+        currentId = folder.parentId;
+      } else {
+        break;
+      }
+    }
+
+    return breadcrumb;
   }
 
   async updateFolder(id: string, dto: UpdateFolderDto) {
@@ -70,19 +146,22 @@ export class FilesService {
       throw new NotFoundException('文件夹不存在');
     }
 
-    let updateData: any = {};
+    const updateData: any = {};
     if (dto.name) {
       updateData.name = dto.name;
       // 重新生成路径
       let path = `/${dto.name}`;
-      if (dto.parentId) {
-        const parent = await this.prisma.fileFolder.findUnique({
-          where: { id: dto.parentId },
-        });
-        if (!parent) {
-          throw new NotFoundException('父文件夹不存在');
+      if (dto.parentId || folder.parentId) {
+        const parentId = dto.parentId !== undefined ? dto.parentId : folder.parentId;
+        if (parentId) {
+          const parent = await this.prisma.fileFolder.findUnique({
+            where: { id: parentId },
+          });
+          if (!parent) {
+            throw new NotFoundException('父文件夹不存在');
+          }
+          path = `${parent.path}/${dto.name}`;
         }
-        path = `${parent.path}/${dto.name}`;
       }
       updateData.path = path;
     }
@@ -95,9 +174,11 @@ export class FilesService {
       data: updateData,
       include: {
         parent: true,
-        children: true,
+        children: {
+          orderBy: { name: 'asc' },
+        },
         _count: {
-          select: { files: true },
+          select: { files: true, children: true },
         },
       },
     });
@@ -178,10 +259,8 @@ export class FilesService {
   async getFiles(query: FileQueryDto) {
     const where: any = {};
     
-    if (query.folderId) {
+    if (query.folderId !== undefined) {
       where.folderId = query.folderId;
-    } else if (query.folderId === null) {
-      where.folderId = null;
     }
 
     if (query.search) {
@@ -204,21 +283,66 @@ export class FilesService {
       }
     }
 
+    // 计算总数
+    const totalCount = await this.prisma.file.count({ where });
+    
+    // 分页参数
+    const page = query.page || 1;
+    const pageSize = query.pageSize || 20;
+    const skip = (page - 1) * pageSize;
+
+    // 排序参数
+    const sortBy = query.sortBy || 'createdAt';
+    const sortOrder = query.sortOrder || 'desc';
+    
     const files = await this.prisma.file.findMany({
       where,
       include: {
-        folder: true,
+        folder: {
+          select: { id: true, name: true, path: true },
+        },
         uploader: {
           select: { id: true, name: true, mail: true },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { [sortBy]: sortOrder },
+      skip,
+      take: pageSize,
     });
 
     // 确保所有返回的文件URL都使用HTTP协议
-    return files.map(file => ({
+    const processedFiles = files.map(file => ({
       ...file,
       url: file.url ? file.url.replace('https://', 'http://') : file.url
+    }));
+
+    return {
+      data: processedFiles,
+      total: totalCount,
+      page,
+      pageSize,
+      totalPages: Math.ceil(totalCount / pageSize),
+      // 额外的统计信息
+      stats: {
+        totalSize: files.reduce((sum, file) => sum + file.size, 0),
+        fileTypes: await this.getFileTypeStats(where),
+      },
+    };
+  }
+
+  // 获取文件类型统计
+  private async getFileTypeStats(where: any) {
+    const typeStats = await this.prisma.file.groupBy({
+      by: ['extension'],
+      where,
+      _count: { extension: true },
+      orderBy: { _count: { extension: 'desc' } },
+      take: 10,
+    });
+
+    return typeStats.map(stat => ({
+      extension: stat.extension,
+      count: stat._count.extension,
     }));
   }
 

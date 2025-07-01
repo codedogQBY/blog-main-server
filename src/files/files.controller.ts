@@ -20,7 +20,7 @@ import { FilesService } from './files.service';
 import { UpyunService } from './upyun.service';
 import { PermissionsGuard } from '../common/permissions.guard';
 import { Permissions } from '../common/permissions.decorator';
-import { CreateFolderDto, UpdateFolderDto, UpdateFileDto, FileQueryDto } from './dto/file.dto';
+import { CreateFolderDto, UpdateFolderDto, UpdateFileDto, FileQueryDto, FolderQueryDto } from './dto/file.dto';
 
 @UseGuards(AuthGuard('jwt'), PermissionsGuard)
 @Controller('files')
@@ -102,8 +102,20 @@ export class FilesController {
 
   @Get('folders')
   @Permissions('file.read')
-  getFolders(@Query('parentId') parentId?: string) {
-    return this.filesService.getFolders(parentId);
+  getFolders(@Query() query: FolderQueryDto) {
+    return this.filesService.getFolders(query);
+  }
+
+  @Get('folders/tree')
+  @Permissions('file.read')
+  getFolderTree() {
+    return this.filesService.getFolderTree();
+  }
+
+  @Get('folders/:id/breadcrumb')
+  @Permissions('file.read')
+  getFolderBreadcrumb(@Param('id') id: string) {
+    return this.filesService.getFolderBreadcrumb(id);
   }
 
   @Put('folders/:id')
