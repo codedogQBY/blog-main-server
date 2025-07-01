@@ -66,20 +66,32 @@ export class GalleryCategoriesService {
     const { name, description, color, sort = 0 } = createGalleryCategoryDto;
 
     // 检查分类名称是否已存在
-    const existingCategory = await this.findByName(name);
+    const categories = await this.getBasicCategories(false);
+    const existingCategory = categories.find(cat => cat.name === name);
+
     if (existingCategory) {
-      throw new Error(`分类 "${name}" 已存在`);
+        if (!existingCategory.isEnabled) {
+            // 如果分类存在但被禁用了，则重新启用它
+            existingCategory.isEnabled = true;
+            existingCategory.description = description;
+            existingCategory.color = color;
+            existingCategory.sort = sort;
+            existingCategory.updatedAt = new Date();
+            await this.saveCategory(existingCategory);
+            return existingCategory;
+        }
+        throw new Error(`分类 "${name}" 已存在`);
     }
 
     const newCategory: GalleryCategory = {
-      id: this.generateId(),
-      name,
-      description,
-      color,
-      sort,
-      isEnabled: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+        id: this.generateId(),
+        name,
+        description,
+        color,
+        sort,
+        isEnabled: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
     };
 
     // 将分类保存到系统配置中

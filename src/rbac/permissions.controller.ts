@@ -17,7 +17,7 @@ import { Permissions } from '../common/permissions.decorator';
 import { AuthGuard } from '@nestjs/passport';
 
 @UseGuards(AuthGuard('jwt'), PermissionsGuard)
-@Controller('permissions')
+@Controller('admin/permission')
 export class PermissionsController {
   constructor(
     private readonly service: PermissionsService,
@@ -30,11 +30,13 @@ export class PermissionsController {
     @Query('page') page: string = '1',
     @Query('pageSize') pageSize: string = '10',
     @Query('search') search?: string,
+    @Query('groupId') groupId?: string,
   ) {
     return this.service.findAll({
       page: parseInt(page),
       limit: parseInt(pageSize),
       search,
+      groupId,
     });
   }
 
@@ -46,7 +48,7 @@ export class PermissionsController {
 
   @Post()
   @Permissions('permission.create')
-  create(@Body() dto: { code: string; name: string }) {
+  create(@Body() dto: { code: string; name: string; description?: string; groupId?: string }) {
     return this.service.create(dto);
   }
 
@@ -54,7 +56,7 @@ export class PermissionsController {
   @Permissions('permission.update')
   update(
     @Param('id') id: string,
-    @Body() dto: { code?: string; name?: string },
+    @Body() dto: { code?: string; name?: string; description?: string; groupId?: string },
   ) {
     return this.service.update(id, dto);
   }
