@@ -52,8 +52,8 @@ export class CategoriesService {
 
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' as const } },
-        { description: { contains: search, mode: 'insensitive' as const } },
+        { name: { contains: search } },
+        { description: { contains: search } },
       ];
     }
 

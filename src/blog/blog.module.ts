@@ -37,6 +37,9 @@ import { DiaryService } from './diary.service';
 import { AboutController } from './about.controller';
 import { AboutService } from './about.service';
 
+// Search
+import { SearchController } from './search.controller';
+
 @Module({
   imports: [PrismaModule],
   controllers: [
@@ -49,6 +52,7 @@ import { AboutService } from './about.service';
     StickyNotesController,
     DiaryController,
     AboutController,
+    SearchController,
   ],
   providers: [
     ArticlesService,

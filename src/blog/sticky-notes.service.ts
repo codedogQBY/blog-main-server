@@ -47,8 +47,8 @@ export class StickyNotesService {
     // 搜索功能
     if (search) {
       where.OR = [
-        { content: { contains: search, mode: 'insensitive' } },
-        { author: { contains: search, mode: 'insensitive' } },
+        { content: { contains: search } },
+        { author: { contains: search } },
       ];
     }
 
@@ -151,8 +151,8 @@ export class StickyNotesService {
     // 搜索功能
     if (search) {
       where.OR = [
-        { content: { contains: search, mode: 'insensitive' } },
-        { author: { contains: search, mode: 'insensitive' } },
+        { content: { contains: search } },
+        { author: { contains: search } },
       ];
     }
 

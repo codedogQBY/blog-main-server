@@ -476,8 +476,8 @@ export class InteractionsService {
     if (targetId) where.targetId = targetId;
     if (search) {
       where.OR = [
-        { content: { contains: search, mode: 'insensitive' } },
-        { author: { contains: search, mode: 'insensitive' } },
+        { content: { contains: search } },
+        { author: { contains: search } },
       ];
     }
 
