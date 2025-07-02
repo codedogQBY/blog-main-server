@@ -14,6 +14,7 @@ import { RequirePermissions } from '../rbac/permissions.decorator';
 import { InteractionsService } from './interactions.service';
 import { ToggleLikeDto, CreateCommentDto, GetCommentsDto, GetStatsDto } from './dto/interaction.dto';
 import { Public } from '../auth/public.decorator';
+import { Permissions } from '../common/permissions.decorator';
 
 @Controller('interactions')
 export class InteractionsController {
@@ -31,7 +32,7 @@ export class InteractionsController {
     return this.interactionsService.createComment(dto);
   }
 
-  @Get('comment')
+  @Get('comments')
   @Public()
   async getComments(@Query() dto: GetCommentsDto) {
     return this.interactionsService.getComments(dto);
@@ -53,16 +54,16 @@ export class InteractionsController {
   // 管理接口
   @Get('admin/likes')
   @UseGuards(JwtAuthGuard)
-  @RequirePermissions('interaction.read')
+  @Permissions('interaction.read')
   async getAdminLikes(
-    @Query('page') page: string = '1',
-    @Query('limit') limit: string = '20',
+    @Query('page') page = 1,
+    @Query('limit') limit = 20,
     @Query('targetType') targetType?: string,
     @Query('targetId') targetId?: string,
   ) {
     return this.interactionsService.getAdminLikes({
-      page: parseInt(page),
-      limit: parseInt(limit),
+      page: +page,
+      limit: +limit,
       targetType,
       targetId,
     });
@@ -70,17 +71,17 @@ export class InteractionsController {
 
   @Get('admin/comments')
   @UseGuards(JwtAuthGuard)
-  @RequirePermissions('interaction.read')
+  @Permissions('interaction.read')
   async getAdminComments(
-    @Query('page') page: string = '1',
-    @Query('limit') limit: string = '20',
+    @Query('page') page = 1,
+    @Query('limit') limit = 20,
     @Query('targetType') targetType?: string,
     @Query('targetId') targetId?: string,
     @Query('search') search?: string,
   ) {
     return this.interactionsService.getAdminComments({
-      page: parseInt(page),
-      limit: parseInt(limit),
+      page: +page,
+      limit: +limit,
       targetType,
       targetId,
       search,
@@ -89,21 +90,21 @@ export class InteractionsController {
 
   @Delete('admin/comments/:id')
   @UseGuards(JwtAuthGuard)
-  @RequirePermissions('interaction.delete')
-  async deleteComment(@Param('id') id: string, @Request() req) {
-    return this.interactionsService.deleteComment(id, req.user.sub);
+  @Permissions('interaction.delete')
+  async deleteComment(@Param('id') id: string) {
+    return this.interactionsService.deleteComment(id, 'admin');
   }
 
   @Delete('admin/likes/:id')
   @UseGuards(JwtAuthGuard)
-  @RequirePermissions('interaction.delete')
-  async deleteLike(@Param('id') id: string, @Request() req) {
-    return this.interactionsService.deleteLike(id, req.user.sub);
+  @Permissions('interaction.delete')
+  async deleteLike(@Param('id') id: string) {
+    return this.interactionsService.deleteLike(id, 'admin');
   }
 
   @Get('admin/stats')
   @UseGuards(JwtAuthGuard)
-  @RequirePermissions('interaction.read')
+  @Permissions('interaction.read')
   async getAdminStats() {
     return this.interactionsService.getAdminStats();
   }

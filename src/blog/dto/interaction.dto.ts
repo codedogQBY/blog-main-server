@@ -1,152 +1,156 @@
-import { IsString, IsOptional, IsInt, Min, IsIn, IsObject, IsEmail, IsBoolean, IsNumber } from 'class-validator';
+import { IsString, IsOptional, IsNotEmpty, IsObject, IsNumber, IsInt, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
 // 用户信息DTO
 export class UserInfoDto {
   @IsString()
-  userAgent: string;
-
-  @IsString()
-  deviceType: string;
-
   @IsOptional()
+  userAgent?: string;
+
   @IsString()
+  @IsOptional()
+  deviceType?: string;
+
+  @IsString()
+  @IsOptional()
   ipAddress?: string;
 
-  @IsOptional()
-  @IsObject()
-  browserInfo?: {
-    name: string;
-    version: string;
-    os: string;
-  };
-
-  @IsOptional()
   @IsString()
+  @IsOptional()
   country?: string;
 
-  @IsOptional()
   @IsString()
+  @IsOptional()
   region?: string;
 
-  @IsOptional()
   @IsString()
+  @IsOptional()
   city?: string;
 
-  @IsOptional()
   @IsNumber()
+  @IsOptional()
   latitude?: number;
 
-  @IsOptional()
   @IsNumber()
+  @IsOptional()
   longitude?: number;
 
-  @IsOptional()
   @IsString()
+  @IsOptional()
   timezone?: string;
 
-  @IsOptional()
   @IsString()
+  @IsOptional()
   deviceModel?: string;
 
-  @IsOptional()
   @IsString()
+  @IsOptional()
   osName?: string;
 
-  @IsOptional()
   @IsString()
+  @IsOptional()
   osVersion?: string;
 
-  @IsOptional()
   @IsString()
+  @IsOptional()
   browserName?: string;
 
-  @IsOptional()
   @IsString()
+  @IsOptional()
   browserVersion?: string;
 
+  @IsNumber()
   @IsOptional()
-  @IsInt()
   screenWidth?: number;
 
+  @IsNumber()
   @IsOptional()
-  @IsInt()
   screenHeight?: number;
 
-  @IsOptional()
   @IsString()
+  @IsOptional()
   language?: string;
 
-  @IsOptional()
   @IsString()
+  @IsOptional()
   languages?: string;
 
-  @IsOptional()
   @IsString()
+  @IsOptional()
   nickname?: string;
 
+  @IsString()
   @IsOptional()
-  @IsEmail()
   email?: string;
 }
 
 // 点赞请求DTO
 export class ToggleLikeDto {
   @IsString()
-  @IsIn(['article', 'sticky_note', 'gallery_image'])
+  @IsNotEmpty()
   targetType: string;
 
   @IsString()
+  @IsNotEmpty()
   targetId: string;
 
   @IsString()
+  @IsNotEmpty()
   fingerprint: string;
 
   @IsObject()
-  @Type(() => UserInfoDto)
   userInfo: UserInfoDto;
 }
 
 // 评论请求DTO
 export class CreateCommentDto {
   @IsString()
-  @IsIn(['article', 'sticky_note', 'gallery_image'])
+  @IsNotEmpty()
   targetType: string;
 
   @IsString()
+  @IsNotEmpty()
   targetId: string;
 
   @IsString()
+  @IsNotEmpty()
+  content: string;
+
+  @IsString()
+  @IsNotEmpty()
   fingerprint: string;
 
   @IsString()
-  content: string;
-
   @IsOptional()
-  @IsString()
   parentId?: string;
 
   @IsObject()
-  @Type(() => UserInfoDto)
   userInfo: UserInfoDto;
 }
 
 // 获取评论列表DTO
 export class GetCommentsDto {
   @IsString()
-  @IsIn(['article', 'sticky_note', 'gallery_image'])
+  @IsNotEmpty()
   targetType: string;
 
   @IsString()
+  @IsNotEmpty()
   targetId: string;
 
+  @IsString()
   @IsOptional()
+  fingerprint?: string;
+
+  @IsString()
+  @IsOptional()
+  parentId?: string;
+
   @IsInt()
   @Min(1)
   @Type(() => Number)
   page?: number = 1;
 
-  @IsOptional()
   @IsInt()
   @Min(1)
   @Type(() => Number)
@@ -156,12 +160,93 @@ export class GetCommentsDto {
 // 获取统计数据DTO
 export class GetStatsDto {
   @IsString()
-  @IsIn(['article', 'sticky_note', 'gallery_image'])
+  @IsNotEmpty()
   targetType: string;
 
   @IsString()
+  @IsNotEmpty()
   targetId: string;
 
   @IsString()
+  @IsOptional()
+  fingerprint?: string;
+}
+
+export interface ActivityLogItem {
+  action: string;
+  targetType: string;
+  targetId: string;
+  createdAt: Date;
+  fingerprint: string | null;
+}
+
+export interface InteractionCommentGroupByItem {
+  targetType: string;
+  targetId: string;
+  fingerprint?: string | null;
+  author?: string | null;
+  _count: {
+    id: number;
+  };
+}
+
+export interface LikeGroupByItem {
+  targetType: string;
+  targetId: string;
+  _count: {
+    id: number;
+  };
+}
+
+export interface CommentTypeStats {
+  type: string;
+  count: number;
+}
+
+export interface DailyTrendStats {
+  date: string;
+  count: number;
+}
+
+export interface TopCommenter {
   fingerprint: string;
+  author: string;
+  count: number;
+}
+
+export interface TopContent {
+  type: string;
+  id: string;
+  title: string;
+  count: number;
+}
+
+export interface CommentStats {
+  byType: CommentTypeStats[];
+  dailyTrend: DailyTrendStats[];
+  topCommenters: TopCommenter[];
+  topContent: TopContent[];
+}
+
+export interface InteractionStats {
+  overview: {
+    totalLikes: number;
+    totalComments: number;
+    totalUsers: number;
+    todayLikes: number;
+    todayComments: number;
+  };
+  topTargets: Array<{
+    targetType: string;
+    targetId: string;
+    likesCount: number;
+  }>;
+  recentActivity: Array<{
+    action: string;
+    targetType: string;
+    targetId: string;
+    timestamp: string;
+    fingerprint: string;
+  }>;
+  commentStats: CommentStats;
 } 

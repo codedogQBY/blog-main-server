@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { ToggleLikeDto, CreateCommentDto, GetCommentsDto, GetStatsDto, UserInfoDto } from './dto/interaction.dto';
+import { ToggleLikeDto, CreateCommentDto, GetCommentsDto, GetStatsDto, ActivityLogItem, InteractionCommentGroupByItem, LikeGroupByItem, UserInfoDto, InteractionStats } from './dto/interaction.dto';
 
 @Injectable()
 export class InteractionsService {
@@ -347,7 +347,7 @@ export class InteractionsService {
       this.prisma.like.findUnique({
         where: {
           fingerprint_targetType_targetId: {
-            fingerprint,
+            fingerprint: fingerprint || '',
             targetType,
             targetId,
           },
@@ -664,7 +664,13 @@ export class InteractionsService {
   }
 
   // 获取管理统计信息
-  async getAdminStats() {
+  async getAdminStats(): Promise<InteractionStats> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
     const [
       totalLikes,
       totalComments,
@@ -673,38 +679,37 @@ export class InteractionsService {
       todayComments,
       topTargets,
       recentActivity,
+      // 新增统计数据
+      commentsByType,
+      dailyComments,
+      topCommenters,
+      topCommentedContent
     ] = await Promise.all([
-      // 总点赞数
+      // 原有的统计
       this.prisma.like.count(),
-      // 总评论数
       this.prisma.interactionComment.count({ where: { isDeleted: false } }),
-      // 总用户数
       this.prisma.userInfo.count(),
-      // 今日点赞数
       this.prisma.like.count({
         where: {
           createdAt: {
-            gte: new Date(new Date().setHours(0, 0, 0, 0)),
+            gte: today,
           },
         },
       }),
-      // 今日评论数
       this.prisma.interactionComment.count({
         where: {
           isDeleted: false,
           createdAt: {
-            gte: new Date(new Date().setHours(0, 0, 0, 0)),
+            gte: today,
           },
         },
       }),
-      // 热门目标
       this.prisma.like.groupBy({
         by: ['targetType', 'targetId'],
         _count: { id: true },
         orderBy: { _count: { id: 'desc' } },
         take: 10,
       }),
-      // 最近活动
       this.prisma.activityLog.findMany({
         where: {
           action: { in: ['like', 'unlike', 'comment'] },
@@ -719,7 +724,104 @@ export class InteractionsService {
           fingerprint: true,
         },
       }),
+      // 按类型统计评论数
+      this.prisma.interactionComment.groupBy({
+        by: ['targetType'],
+        _count: { id: true },
+        where: { isDeleted: false },
+        orderBy: { _count: { id: 'desc' } },
+      }),
+      // 每日评论数趋势
+      this.prisma.interactionComment.groupBy({
+        by: ['createdAt'],
+        _count: { id: true },
+        where: {
+          isDeleted: false,
+          createdAt: {
+            gte: thirtyDaysAgo,
+          },
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
+      // 活跃评论用户排行
+      this.prisma.interactionComment.groupBy({
+        by: ['fingerprint', 'author'],
+        _count: { id: true },
+        where: { isDeleted: false },
+        orderBy: { _count: { id: 'desc' } },
+        take: 10,
+      }),
+      // 最多评论的内容
+      this.prisma.interactionComment.groupBy({
+        by: ['targetType', 'targetId'],
+        _count: { id: true },
+        where: { isDeleted: false },
+        orderBy: { _count: { id: 'desc' } },
+        take: 10,
+      }),
     ]);
+
+    // 处理每日评论数据
+    const dailyStats = new Map<string, number>();
+    for (const day of dailyComments) {
+      const date = day.createdAt.toISOString().split('T')[0];
+      dailyStats.set(date, (dailyStats.get(date) || 0) + day._count.id);
+    }
+
+    // 生成最近30天的数据
+    const dailyData: { date: string; count: number }[] = [];
+    for (let i = 0; i < 30; i++) {
+      const date = new Date(thirtyDaysAgo);
+      date.setDate(date.getDate() + i);
+      const dateStr = date.toISOString().split('T')[0];
+      dailyData.push({
+        date: dateStr,
+        count: dailyStats.get(dateStr) || 0,
+      });
+    }
+
+    // 转换目标类型
+    const convertTargetType = (type: string) => {
+      const typeMap: Record<string, string> = {
+        'gallery_image': 'galleryImage',
+        'sticky_note': 'stickyNote',
+      };
+      return typeMap[type] || type;
+    };
+
+    // 获取内容标题
+    const getContentTitle = async (type: string, id: string): Promise<string> => {
+      try {
+        switch (type) {
+          case 'article': {
+            const article = await this.prisma.article.findUnique({
+              where: { id },
+              select: { title: true },
+            });
+            return article?.title || id;
+          }
+          case 'gallery_image': {
+            const image = await this.prisma.galleryImage.findUnique({
+              where: { id },
+              select: { title: true },
+            });
+            return image?.title || '未命名图片';
+          }
+          case 'sticky_note': {
+            const note = await this.prisma.stickyNote.findUnique({
+              where: { id },
+              select: { content: true },
+            });
+            return note?.content?.slice(0, 20) + '...' || '未命名便签';
+          }
+          default:
+            return id;
+        }
+      } catch (error) {
+        console.error(`获取内容标题失败: ${type} ${id}`, error);
+        return id;
+      }
+    };
 
     return {
       overview: {
@@ -729,18 +831,36 @@ export class InteractionsService {
         todayLikes,
         todayComments,
       },
-      topTargets: topTargets.map(target => ({
-        targetType: target.targetType,
-        targetId: target.targetId,
-        likesCount: target._count.id,
+      topTargets: topTargets.map(item => ({
+        targetType: convertTargetType(item.targetType),
+        targetId: item.targetId,
+        likesCount: item._count.id,
       })),
-      recentActivity: recentActivity.map(activity => ({
-        action: activity.action,
-        targetType: activity.targetType,
-        targetId: activity.targetId,
-        timestamp: activity.createdAt.toISOString(),
-        fingerprint: activity.fingerprint,
+      recentActivity: recentActivity.map(item => ({
+        action: item.action,
+        targetType: convertTargetType(item.targetType),
+        targetId: item.targetId,
+        timestamp: item.createdAt.toISOString(),
+        fingerprint: item.fingerprint === null ? 'unknown' : item.fingerprint,
       })),
+      commentStats: {
+        byType: commentsByType.map(item => ({
+          type: convertTargetType(item.targetType),
+          count: item._count.id,
+        })),
+        dailyTrend: dailyData,
+        topCommenters: topCommenters.map(item => ({
+          fingerprint: item.fingerprint === null ? 'unknown' : item.fingerprint,
+          author: item.author === null ? '匿名用户' : item.author,
+          count: item._count.id,
+        })),
+        topContent: await Promise.all(topCommentedContent.map(async item => ({
+          type: convertTargetType(item.targetType),
+          id: item.targetId,
+          title: await getContentTitle(item.targetType, item.targetId),
+          count: item._count.id,
+        }))),
+      },
     };
   }
 } 
