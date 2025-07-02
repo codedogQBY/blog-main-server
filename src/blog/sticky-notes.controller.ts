@@ -32,7 +32,7 @@ export class StickyNotesController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Permissions('sticky_note:admin_list')
+  @Permissions('sticky_note.read')
   @Get('admin/list')
   findAllForAdmin(@Query() query: GetStickyNotesDto) {
     return this.stickyNotesService.findAllForAdmin(query);
@@ -45,14 +45,14 @@ export class StickyNotesController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Permissions('sticky_note:stats')
+  @Permissions('sticky_note.stats')
   @Get('stats')
   getStats() {
     return this.stickyNotesService.getStats();
   }
 
   @UseGuards(JwtAuthGuard)
-  @Permissions('sticky_note:admin_stats')
+  @Permissions('sticky_note.stats')
   @Get('admin/stats')
   getAdminStats() {
     return this.stickyNotesService.getAdminStats();
@@ -65,14 +65,14 @@ export class StickyNotesController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Permissions('sticky_note:update')
+  @Permissions('sticky_note.update')
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateStickyNoteDto: UpdateStickyNoteDto) {
     return this.stickyNotesService.update(id, updateStickyNoteDto);
   }
 
   @UseGuards(JwtAuthGuard)
-  @Permissions('sticky_note:delete')
+  @Permissions('sticky_note.delete')
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.stickyNotesService.remove(id);

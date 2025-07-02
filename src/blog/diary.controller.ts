@@ -60,35 +60,35 @@ export class DiaryController {
 
   // ======= 随记管理 - 管理员接口 =======
   @UseGuards(JwtAuthGuard)
-  @Permissions('diary:create')
+  @Permissions('diary.create')
   @Post('admin/notes')
   createNote(@Body() createDiaryNoteDto: CreateDiaryNoteDto) {
     return this.diaryService.createNote(createDiaryNoteDto);
   }
 
   @UseGuards(JwtAuthGuard)
-  @Permissions('diary:admin_list')
+  @Permissions('diary.read')
   @Get('admin/notes')
   findAllNotesForAdmin(@Query() query: GetDiaryNotesDto) {
     return this.diaryService.findAllNotesForAdmin(query);
   }
 
   @UseGuards(JwtAuthGuard)
-  @Permissions('diary:admin_stats')
+  @Permissions('diary.stats')
   @Get('admin/stats')
   getAdminStats() {
     return this.diaryService.getAdminStats();
   }
 
   @UseGuards(JwtAuthGuard)
-  @Permissions('diary:update')
+  @Permissions('diary.update')
   @Patch('admin/notes/:id')
   updateNote(@Param('id') id: string, @Body() updateDiaryNoteDto: UpdateDiaryNoteDto) {
     return this.diaryService.updateNote(id, updateDiaryNoteDto);
   }
 
   @UseGuards(JwtAuthGuard)
-  @Permissions('diary:delete')
+  @Permissions('diary.delete')
   @Delete('admin/notes/:id')
   removeNote(@Param('id') id: string) {
     return this.diaryService.removeNote(id);
@@ -96,21 +96,21 @@ export class DiaryController {
 
   // ======= 签名管理 =======
   @UseGuards(JwtAuthGuard)
-  @Permissions('diary:signature_list')
+  @Permissions('diary.signature.read')
   @Get('admin/signatures')
   getSignatures() {
     return this.diaryService.getSignatures();
   }
 
   @UseGuards(JwtAuthGuard)
-  @Permissions('diary:signature_create')
+  @Permissions('diary.signature.create')
   @Post('admin/signatures')
   createSignature(@Body() createSignatureDto: CreateDiarySignatureDto) {
     return this.diaryService.createSignature(createSignatureDto);
   }
 
   @UseGuards(JwtAuthGuard)
-  @Permissions('diary:signature_update')
+  @Permissions('diary.signature.update')
   @Patch('admin/signatures/:id')
   updateSignature(
     @Param('id') id: string,
@@ -120,7 +120,7 @@ export class DiaryController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Permissions('diary:signature_delete')
+  @Permissions('diary.signature.delete')
   @Delete('admin/signatures/:id')
   removeSignature(@Param('id') id: string) {
     return this.diaryService.removeSignature(id);
@@ -128,21 +128,21 @@ export class DiaryController {
 
   // ======= 天气配置管理 =======
   @UseGuards(JwtAuthGuard)
-  @Permissions('diary:weather_list')
+  @Permissions('diary.weather.read')
   @Get('admin/weather-configs')
   getAllWeatherConfigs() {
     return this.diaryService.getAllWeatherConfigs();
   }
 
   @UseGuards(JwtAuthGuard)
-  @Permissions('diary:weather_create')
+  @Permissions('diary.weather.create')
   @Post('admin/weather-configs')
   createWeatherConfig(@Body() createWeatherDto: CreateDiaryWeatherConfigDto) {
     return this.diaryService.createWeatherConfig(createWeatherDto);
   }
 
   @UseGuards(JwtAuthGuard)
-  @Permissions('diary:weather_update')
+  @Permissions('diary.weather.update')
   @Patch('admin/weather-configs/:id')
   updateWeatherConfig(
     @Param('id') id: string,
@@ -152,7 +152,7 @@ export class DiaryController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Permissions('diary:weather_delete')
+  @Permissions('diary.weather.delete')
   @Delete('admin/weather-configs/:id')
   removeWeatherConfig(@Param('id') id: string) {
     return this.diaryService.removeWeatherConfig(id);

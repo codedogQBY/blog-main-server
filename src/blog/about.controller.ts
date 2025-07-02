@@ -23,6 +23,7 @@ import {
 } from './dto/about.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Public } from '../auth/public.decorator';
+import { RequirePermissions } from '../rbac/permissions.decorator';
 
 @Controller('about')
 export class AboutController {
@@ -37,6 +38,7 @@ export class AboutController {
 
   // 管理端接口：获取所有关于页面配置
   @UseGuards(JwtAuthGuard)
+  @RequirePermissions('about.read')
   @Get()
   async findAll() {
     return this.aboutService.findAll();
@@ -44,6 +46,7 @@ export class AboutController {
 
   // 管理端接口：创建关于页面配置
   @UseGuards(JwtAuthGuard)
+  @RequirePermissions('about.create')
   @Post()
   async create(@Body() createAboutDto: CreateAboutDto) {
     return this.aboutService.create(createAboutDto);
@@ -51,6 +54,7 @@ export class AboutController {
 
   // 管理端接口：获取单个关于页面配置
   @UseGuards(JwtAuthGuard)
+  @RequirePermissions('about.read')
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.aboutService.findOne(id);
@@ -58,6 +62,7 @@ export class AboutController {
 
   // 管理端接口：更新关于页面配置
   @UseGuards(JwtAuthGuard)
+  @RequirePermissions('about.update')
   @Patch(':id')
   async update(@Param('id') id: string, @Body() updateAboutDto: UpdateAboutDto) {
     return this.aboutService.update(id, updateAboutDto);
@@ -65,6 +70,7 @@ export class AboutController {
 
   // 管理端接口：删除关于页面配置
   @UseGuards(JwtAuthGuard)
+  @RequirePermissions('about.delete')
   @Delete(':id')
   async remove(@Param('id') id: string) {
     return this.aboutService.remove(id);
@@ -72,12 +78,14 @@ export class AboutController {
 
   // 标签管理
   @UseGuards(JwtAuthGuard)
+  @RequirePermissions('about.tag.create')
   @Post('tags')
   async createTag(@Body() createAboutTagDto: CreateAboutTagDto) {
     return this.aboutService.createTag(createAboutTagDto);
   }
 
   @UseGuards(JwtAuthGuard)
+  @RequirePermissions('about.tag.update')
   @Patch('tags/:id')
   async updateTag(
     @Param('id') id: string,
@@ -87,6 +95,7 @@ export class AboutController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @RequirePermissions('about.tag.delete')
   @Delete('tags/:id')
   async removeTag(@Param('id') id: string) {
     return this.aboutService.removeTag(id);
@@ -94,6 +103,7 @@ export class AboutController {
 
   // 批量创建标签
   @UseGuards(JwtAuthGuard)
+  @RequirePermissions('about.tag.create')
   @Post(':aboutId/tags/batch')
   async createTags(
     @Param('aboutId') aboutId: string,
@@ -104,12 +114,14 @@ export class AboutController {
 
   // 章节管理
   @UseGuards(JwtAuthGuard)
+  @RequirePermissions('about.section.create')
   @Post('sections')
   async createSection(@Body() createAboutSectionDto: CreateAboutSectionDto) {
     return this.aboutService.createSection(createAboutSectionDto);
   }
 
   @UseGuards(JwtAuthGuard)
+  @RequirePermissions('about.section.update')
   @Patch('sections/:id')
   async updateSection(
     @Param('id') id: string,
@@ -119,6 +131,7 @@ export class AboutController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @RequirePermissions('about.section.delete')
   @Delete('sections/:id')
   async removeSection(@Param('id') id: string) {
     return this.aboutService.removeSection(id);
@@ -126,12 +139,14 @@ export class AboutController {
 
   // 图片管理
   @UseGuards(JwtAuthGuard)
+  @RequirePermissions('about.image.create')
   @Post('images')
   async createImage(@Body() createAboutImageDto: CreateAboutImageDto) {
     return this.aboutService.createImage(createAboutImageDto);
   }
 
   @UseGuards(JwtAuthGuard)
+  @RequirePermissions('about.image.update')
   @Patch('images/:id')
   async updateImage(
     @Param('id') id: string,
@@ -141,6 +156,7 @@ export class AboutController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @RequirePermissions('about.image.delete')
   @Delete('images/:id')
   async removeImage(@Param('id') id: string) {
     return this.aboutService.removeImage(id);
@@ -148,6 +164,7 @@ export class AboutController {
 
   // 批量创建图片
   @UseGuards(JwtAuthGuard)
+  @RequirePermissions('about.image.create')
   @Post('sections/:sectionId/images/batch')
   async createImages(
     @Param('sectionId') sectionId: string,

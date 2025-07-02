@@ -152,6 +152,16 @@ export class PermissionsSyncService {
             description = '关于页面相关权限';
             sort = 40;
             break;
+          case 'sticky_note':
+            name = '便签管理';
+            description = '便签相关权限';
+            sort = 50;
+            break;
+          case 'interaction':
+            name = '互动管理';
+            description = '互动相关权限';
+            sort = 60;
+            break;
           default:
             name = '其他';
             description = '其他权限';
