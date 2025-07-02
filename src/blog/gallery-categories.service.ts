@@ -80,18 +80,18 @@ export class GalleryCategoriesService {
             await this.saveCategory(existingCategory);
             return existingCategory;
         }
-        throw new Error(`分类 "${name}" 已存在`);
+      throw new Error(`分类 "${name}" 已存在`);
     }
 
     const newCategory: GalleryCategory = {
-        id: this.generateId(),
-        name,
-        description,
-        color,
-        sort,
-        isEnabled: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+      id: this.generateId(),
+      name,
+      description,
+      color,
+      sort,
+      isEnabled: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
 
     // 将分类保存到系统配置中
