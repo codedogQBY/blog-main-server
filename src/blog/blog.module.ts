@@ -1,9 +1,14 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
+import { UsersModule } from '../users/users.module';
+import { ArticlesService } from './articles.service';
+import { InteractionsService } from './interactions.service';
+import { DiaryService } from './diary.service';
+import { GalleryService } from './gallery.service';
+import { DashboardController } from './dashboard.controller';
 
 // Articles
 import { ArticlesController } from './articles.controller';
-import { ArticlesService } from './articles.service';
 
 // Categories
 import { CategoriesController } from './categories.controller';
@@ -15,15 +20,10 @@ import { TagsService } from './tags.service';
 
 // Gallery
 import { GalleryController } from './gallery.controller';
-import { GalleryService } from './gallery.service';
 
 // Gallery Categories
 import { GalleryCategoriesController } from './gallery-categories.controller';
 import { GalleryCategoriesService } from './gallery-categories.service';
-
-// Interactions
-import { InteractionsController } from './interactions.controller';
-import { InteractionsService } from './interactions.service';
 
 // Sticky Notes
 import { StickyNotesController } from './sticky-notes.controller';
@@ -31,7 +31,6 @@ import { StickyNotesService } from './sticky-notes.service';
 
 // Diary
 import { DiaryController } from './diary.controller';
-import { DiaryService } from './diary.service';
 
 // About
 import { AboutController } from './about.controller';
@@ -40,19 +39,26 @@ import { AboutService } from './about.service';
 // Search
 import { SearchController } from './search.controller';
 
+// Interactions
+import { InteractionsController } from './interactions.controller';
+
 @Module({
-  imports: [PrismaModule],
+  imports: [
+    PrismaModule,
+    UsersModule,
+  ],
   controllers: [
+    DashboardController,
     ArticlesController,
     CategoriesController,
     TagsController,
     GalleryController,
     GalleryCategoriesController,
-    InteractionsController,
     StickyNotesController,
     DiaryController,
     AboutController,
     SearchController,
+    InteractionsController,
   ],
   providers: [
     ArticlesService,
@@ -60,21 +66,16 @@ import { SearchController } from './search.controller';
     TagsService,
     GalleryService,
     GalleryCategoriesService,
-    InteractionsService,
     StickyNotesService,
     DiaryService,
     AboutService,
+    InteractionsService,
   ],
   exports: [
     ArticlesService,
-    CategoriesService,
-    TagsService,
-    GalleryService,
-    GalleryCategoriesService,
     InteractionsService,
-    StickyNotesService,
     DiaryService,
-    AboutService,
+    GalleryService,
   ],
 })
 export class BlogModule {} 

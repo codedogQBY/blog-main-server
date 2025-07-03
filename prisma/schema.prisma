@@ -63,7 +63,6 @@ model User {
   updatedAt    DateTime  @updatedAt
   roleId       String?   @db.Char(36)
   articles     Article[]
-  comments     Comment[]
   files        File[]
   role         Role?     @relation(fields: [roleId], references: [id])
 
@@ -132,7 +131,6 @@ model Article {
   tags        ArticleTag[]
   author      User         @relation(fields: [authorId], references: [id])
   category    Category     @relation(fields: [categoryId], references: [id])
-  comments    Comment[]
   likes       Like[]
 
   @@index([authorId], map: "articles_authorId_fkey")
@@ -152,26 +150,7 @@ model ArticleTag {
   @@map("article_tags")
 }
 
-model Comment {
-  id         String    @id @default(uuid())
-  content    String    @db.Text
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  articleId  String
-  authorId   String?
-  guestName  String?
-  guestEmail String?
-  parentId   String?
-  article    Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  author     User?     @relation(fields: [authorId], references: [id])
-  parent     Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
-  replies    Comment[] @relation("CommentReplies")
 
-  @@index([articleId], map: "comments_articleId_fkey")
-  @@index([authorId], map: "comments_authorId_fkey")
-  @@index([parentId], map: "comments_parentId_fkey")
-  @@map("comments")
-}
 
 model FileFolder {
   id        String       @id @default(uuid())

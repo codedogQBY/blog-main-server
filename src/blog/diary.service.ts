@@ -10,6 +10,11 @@ import {
   UpdateDiaryWeatherConfigDto
 } from './dto/diary.dto';
 
+interface TrendData {
+  date: string;
+  count: number;
+}
+
 @Injectable()
 export class DiaryService {
   constructor(private readonly prisma: PrismaService) {}
@@ -208,23 +213,53 @@ export class DiaryService {
 
   // ======= 统计信息 =======
   async getStats() {
-    const [totalNotes, publicNotes, recentNotes] = await Promise.all([
+    const [total, public_, private_] = await Promise.all([
       this.prisma.diaryNote.count(),
       this.prisma.diaryNote.count({ where: { status: 'public' } }),
-      this.prisma.diaryNote.count({
-        where: {
-          createdAt: {
-            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 最近7天
-          },
-        },
-      }),
+      this.prisma.diaryNote.count({ where: { status: 'private' } }),
     ]);
 
-    return {
-      totalNotes,
-      publicNotes,
-      recentNotes,
-    };
+    return { total, public: public_, private: private_ };
+  }
+
+  async getTrend() {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const notes = await this.prisma.diaryNote.findMany({
+      where: {
+        createdAt: {
+          gte: thirtyDaysAgo,
+        },
+      },
+      select: {
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    // 按日期分组统计
+    const trend: Record<string, number> = notes.reduce((acc, note) => {
+      const date = note.createdAt.toISOString().split('T')[0];
+      acc[date] = (acc[date] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // 填充没有数据的日期
+    const result: TrendData[] = [];
+    for (let i = 0; i < 30; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      result.unshift({
+        date: dateStr,
+        count: trend[dateStr] || 0,
+      });
+    }
+
+    return result;
   }
 
   // 管理员统计（包括私有随记）

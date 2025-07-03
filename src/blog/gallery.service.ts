@@ -8,6 +8,11 @@ import {
   CreateGalleryFromFilesDto,
 } from './dto/gallery.dto';
 
+interface TrendData {
+  date: string;
+  count: number;
+}
+
 @Injectable()
 export class GalleryService {
   constructor(private prisma: PrismaService) {}
@@ -385,5 +390,55 @@ export class GalleryService {
     });
 
     return Array.from(allTags).sort();
+  }
+
+  async getStats() {
+    const [total, published, draft] = await Promise.all([
+      this.prisma.gallery.count(),
+      this.prisma.gallery.count({ where: { status: 'published' } }),
+      this.prisma.gallery.count({ where: { status: 'draft' } }),
+    ]);
+
+    return { total, published, draft };
+  }
+
+  async getTrend() {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const galleries = await this.prisma.gallery.findMany({
+      where: {
+        createdAt: {
+          gte: thirtyDaysAgo,
+        },
+      },
+      select: {
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    // 按日期分组统计
+    const trend: Record<string, number> = galleries.reduce((acc, gallery) => {
+      const date = gallery.createdAt.toISOString().split('T')[0];
+      acc[date] = (acc[date] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // 填充没有数据的日期
+    const result: TrendData[] = [];
+    for (let i = 0; i < 30; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      result.unshift({
+        date: dateStr,
+        count: trend[dateStr] || 0,
+      });
+    }
+
+    return result;
   }
 } 

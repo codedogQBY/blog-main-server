@@ -2,6 +2,11 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateArticleDto, UpdateArticleDto } from './dto/article.dto';
 
+interface TrendData {
+  date: string;
+  count: number;
+}
+
 @Injectable()
 export class ArticlesService {
   constructor(private readonly prisma: PrismaService) {}
@@ -277,22 +282,6 @@ export class ArticlesService {
         tags: {
           include: { tag: true },
         },
-        comments: {
-          where: { parentId: null },
-          include: {
-            author: {
-              select: { id: true, name: true },
-            },
-            replies: {
-              include: {
-                author: {
-                  select: { id: true, name: true },
-                },
-              },
-            },
-          },
-          orderBy: { createdAt: 'desc' },
-        },
       },
     });
 
@@ -300,7 +289,42 @@ export class ArticlesService {
       throw new NotFoundException('文章不存在');
     }
 
-    return article;
+    // 获取文章的评论
+    const comments = await this.prisma.interactionComment.findMany({
+      where: {
+        targetType: 'article',
+        targetId: article.id,
+        parentId: null,
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        content: true,
+        author: true,
+        email: true,
+        createdAt: true,
+        updatedAt: true,
+        replies: {
+          where: {
+            isDeleted: false,
+          },
+          select: {
+            id: true,
+            content: true,
+            author: true,
+            email: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      ...article,
+      comments,
+    };
   }
 
   async findOne(id: string) {
@@ -314,22 +338,6 @@ export class ArticlesService {
         tags: {
           include: { tag: true },
         },
-        comments: {
-          where: { parentId: null },
-          include: {
-            author: {
-              select: { id: true, name: true },
-            },
-            replies: {
-              include: {
-                author: {
-                  select: { id: true, name: true },
-                },
-              },
-            },
-          },
-          orderBy: { createdAt: 'desc' },
-        },
       },
     });
 
@@ -337,7 +345,42 @@ export class ArticlesService {
       throw new NotFoundException('文章不存在');
     }
 
-    return article;
+    // 获取文章的评论
+    const comments = await this.prisma.interactionComment.findMany({
+      where: {
+        targetType: 'article',
+        targetId: article.id,
+        parentId: null,
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        content: true,
+        author: true,
+        email: true,
+        createdAt: true,
+        updatedAt: true,
+        replies: {
+          where: {
+            isDeleted: false,
+          },
+          select: {
+            id: true,
+            content: true,
+            author: true,
+            email: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      ...article,
+      comments,
+    };
   }
 
   async update(id: string, updateArticleDto: UpdateArticleDto) {
@@ -461,5 +504,79 @@ export class ArticlesService {
         },
       });
     }
+  }
+
+  async getStats() {
+    const [total, published, draft] = await Promise.all([
+      this.prisma.article.count(),
+      this.prisma.article.count({ where: { published: true } }),
+      this.prisma.article.count({ where: { published: false } }),
+    ]);
+
+    return { total, published, draft };
+  }
+
+  async getRecent() {
+    const articles = await this.prisma.article.findMany({
+      take: 5,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        published: true,
+        createdAt: true,
+        category: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    return articles.map(article => ({
+      ...article,
+      status: article.published ? 'PUBLISHED' : 'DRAFT',
+    }));
+  }
+
+  async getTrend() {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const articles = await this.prisma.article.findMany({
+      where: {
+        createdAt: {
+          gte: thirtyDaysAgo,
+        },
+      },
+      select: {
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    // 按日期分组统计
+    const trend: Record<string, number> = articles.reduce((acc, article) => {
+      const date = article.createdAt.toISOString().split('T')[0];
+      acc[date] = (acc[date] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // 填充没有数据的日期
+    const result: TrendData[] = [];
+    for (let i = 0; i < 30; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      result.unshift({
+        date: dateStr,
+        count: trend[dateStr] || 0,
+      });
+    }
+
+    return result;
   }
 } 

@@ -2,6 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ToggleLikeDto, CreateCommentDto, GetCommentsDto, GetStatsDto, ActivityLogItem, InteractionCommentGroupByItem, LikeGroupByItem, UserInfoDto, InteractionStats } from './dto/interaction.dto';
 
+interface TrendData {
+  date: string;
+  comments: number;
+  likes: number;
+}
+
 @Injectable()
 export class InteractionsService {
   constructor(private prisma: PrismaService) {}
@@ -862,5 +868,193 @@ export class InteractionsService {
         }))),
       },
     };
+  }
+
+  async getStats() {
+    const [totalLikes, totalComments] = await Promise.all([
+      this.prisma.like.count(),
+      this.prisma.interactionComment.count({
+        where: {
+          isDeleted: false,
+          isApproved: true,
+        },
+      }),
+    ]);
+
+    return { totalLikes, totalComments };
+  }
+
+  async getRecent() {
+    // 获取评论 - 使用 InteractionComment 表
+    const comments = await this.prisma.interactionComment.findMany({
+      take: 5,
+      orderBy: { createdAt: 'desc' },
+      where: {
+        isDeleted: false,
+        isApproved: true,
+      },
+      include: {
+        userInfo: {
+          select: {
+            id: true,
+            nickname: true,
+          },
+        },
+      },
+    });
+
+    // 获取点赞
+    const likes = await this.prisma.like.findMany({
+      take: 5,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        userInfo: {
+          select: {
+            id: true,
+            nickname: true,
+          },
+        },
+      },
+    });
+
+    // 为评论获取目标内容的标题
+    const getTargetInfo = async (targetType: string, targetId: string) => {
+      try {
+        switch (targetType) {
+          case 'article':
+            const article = await this.prisma.article.findUnique({
+              where: { id: targetId },
+              select: { id: true, title: true },
+            });
+            return article ? { id: article.id, title: article.title } : null;
+          case 'sticky_note':
+            const stickyNote = await this.prisma.stickyNote.findUnique({
+              where: { id: targetId },
+              select: { id: true, content: true },
+            });
+            return stickyNote ? { id: stickyNote.id, title: stickyNote.content.slice(0, 20) + '...' } : null;
+          case 'gallery':
+            const gallery = await this.prisma.gallery.findUnique({
+              where: { id: targetId },
+              select: { id: true, title: true },
+            });
+            return gallery ? { id: gallery.id, title: gallery.title } : null;
+          default:
+            return { id: targetId, title: '未知内容' };
+        }
+      } catch (error) {
+        console.error(`获取目标内容信息失败: ${targetType} ${targetId}`, error);
+        return { id: targetId, title: '未知内容' };
+      }
+    };
+
+    // 处理评论数据
+    const commentsWithTarget = await Promise.all(
+      comments.map(async (comment) => {
+        const targetInfo = await getTargetInfo(comment.targetType, comment.targetId);
+        return {
+          id: comment.id,
+          content: comment.content,
+          createdAt: comment.createdAt,
+          targetType: comment.targetType,
+          targetInfo,
+          user: comment.userInfo ? {
+            id: comment.userInfo.id,
+            username: comment.userInfo.nickname || '匿名用户',
+          } : {
+            id: 'guest',
+            username: comment.author || '匿名用户',
+          },
+          type: 'comment',
+        };
+      })
+    );
+
+    // 处理点赞数据
+    const likesWithTarget = await Promise.all(
+      likes.map(async (like) => {
+        const targetInfo = await getTargetInfo(like.targetType, like.targetId);
+        return {
+          id: like.id,
+          createdAt: like.createdAt,
+          targetType: like.targetType,
+          targetInfo,
+          user: like.userInfo ? {
+            id: like.userInfo.id,
+            username: like.userInfo.nickname || '匿名用户',
+          } : null,
+          type: 'like',
+        };
+      })
+    );
+
+    return {
+      comments: commentsWithTarget.filter(comment => comment.targetInfo),
+      likes: likesWithTarget.filter(like => like.targetInfo),
+    };
+  }
+
+  async getTrend() {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const [comments, likes] = await Promise.all([
+      this.prisma.interactionComment.findMany({
+        where: {
+          createdAt: {
+            gte: thirtyDaysAgo,
+          },
+          isDeleted: false,
+          isApproved: true,
+        },
+        select: {
+          createdAt: true,
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+      }),
+      this.prisma.like.findMany({
+        where: {
+          createdAt: {
+            gte: thirtyDaysAgo,
+          },
+        },
+        select: {
+          createdAt: true,
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+      }),
+    ]);
+
+    // 按日期分组统计
+    const commentTrend: Record<string, number> = comments.reduce((acc, comment) => {
+      const date = comment.createdAt.toISOString().split('T')[0];
+      acc[date] = (acc[date] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const likeTrend: Record<string, number> = likes.reduce((acc, like) => {
+      const date = like.createdAt.toISOString().split('T')[0];
+      acc[date] = (acc[date] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // 填充没有数据的日期
+    const result: TrendData[] = [];
+    for (let i = 0; i < 30; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      result.unshift({
+        date: dateStr,
+        comments: commentTrend[dateStr] || 0,
+        likes: likeTrend[dateStr] || 0,
+      });
+    }
+
+    return result;
   }
 } 

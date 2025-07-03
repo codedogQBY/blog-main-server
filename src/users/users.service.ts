@@ -145,4 +145,14 @@ export class UsersService {
       include: { role: true }
     });
   }
+
+  async getStats() {
+    const [total, admin, normal] = await Promise.all([
+      this.prisma.user.count(),
+      this.prisma.user.count({ where: { isSuperAdmin: true } }),
+      this.prisma.user.count({ where: { isSuperAdmin: false } }),
+    ]);
+
+    return { total, admin, normal };
+  }
 }
