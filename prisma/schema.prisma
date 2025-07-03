@@ -150,8 +150,6 @@ model ArticleTag {
   @@map("article_tags")
 }
 
-
-
 model FileFolder {
   id        String       @id @default(uuid())
   name      String
@@ -468,4 +466,18 @@ model AboutImage {
 
   @@index([sectionId], map: "about_images_sectionId_fkey")
   @@map("about_images")
+}
+
+model FriendLink {
+  id          String   @id @default(cuid())
+  name        String   @db.VarChar(50)
+  url         String   @db.VarChar(255)
+  logo        String?  @db.VarChar(255)
+  description String?  @db.VarChar(255)
+  status      Int      @default(1) // 1: 正常, 0: 禁用
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("friend_links")
 }

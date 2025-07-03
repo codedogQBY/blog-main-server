@@ -162,6 +162,11 @@ export class PermissionsSyncService {
             description = '互动相关权限';
             sort = 60;
             break;
+          case 'friend_link':
+            name = '友链管理';
+            description = '友链相关权限';
+            sort = 70;
+            break;
           default:
             name = '其他';
             description = '其他权限';

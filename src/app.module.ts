@@ -8,6 +8,7 @@ import { RbacModule } from './rbac/rbac.module';
 import { BlogModule } from './blog/blog.module';
 import { FilesModule } from './files/files.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { PermissionsGuard } from './common/permissions.guard';
 
 @Module({
   imports: [UsersModule, AuthModule, RbacModule, BlogModule, FilesModule],
@@ -17,6 +18,10 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PermissionsGuard,
     },
   ],
 })

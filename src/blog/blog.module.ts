@@ -42,6 +42,9 @@ import { SearchController } from './search.controller';
 // Interactions
 import { InteractionsController } from './interactions.controller';
 
+import { FriendLinksService } from './friend-links.service'
+import { FriendLinksController } from './friend-links.controller'
+
 @Module({
   imports: [
     PrismaModule,
@@ -59,6 +62,7 @@ import { InteractionsController } from './interactions.controller';
     AboutController,
     SearchController,
     InteractionsController,
+    FriendLinksController
   ],
   providers: [
     ArticlesService,
@@ -70,12 +74,14 @@ import { InteractionsController } from './interactions.controller';
     DiaryService,
     AboutService,
     InteractionsService,
+    FriendLinksService
   ],
   exports: [
     ArticlesService,
     InteractionsService,
     DiaryService,
     GalleryService,
+    FriendLinksService
   ],
 })
 export class BlogModule {} 
