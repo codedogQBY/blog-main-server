@@ -1,3 +1,8 @@
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET must be defined');
+}
+
 export const jwtConstants = {
-  secret: process.env.JWT_SECRET || 'blog_jwt_secret_key',
+  secret: process.env.JWT_SECRET,
+  expiresIn: process.env.JWT_EXPIRES_IN || '7d',
 };

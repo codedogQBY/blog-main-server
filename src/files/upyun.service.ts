@@ -9,18 +9,34 @@ export class UpyunService {
   private readonly domain: string;
 
   constructor(private readonly configService: ConfigService) {
+    if (!this.configService.get<string>('UPYUN_BUCKET') ||
+        !this.configService.get<string>('UPYUN_OPERATOR') ||
+        !this.configService.get<string>('UPYUN_PASSWORD')) {
+      throw new Error('Missing required UPYUN configuration');
+    }
+
     // 又拍云配置
-    const service = new upyun.Service('beal-blog-main', 'blog', 'LT2fJpjqDCW5TpWZCjs3hWpmD8DT34HF');
+    const service = new upyun.Service(
+      this.configService.get<string>('UPYUN_BUCKET')!,
+      this.configService.get<string>('UPYUN_OPERATOR')!,
+      this.configService.get<string>('UPYUN_PASSWORD')!
+    );
     
+    if (!this.configService.get<string>('UPYUN_API_DOMAIN') ||
+        !this.configService.get<string>('UPYUN_PROTOCOL') ||
+        !this.configService.get<string>('UPYUN_DOMAIN')) {
+      throw new Error('Missing required UPYUN configuration');
+    }
+
     // 根据官方文档，Client的第二个参数是options对象
     const options = {
-      domain: 'v0.api.upyun.com',  // 又拍云REST API域名
-      protocol: 'http'             // 使用HTTP协议，因为是测试域名
+      domain: this.configService.get<string>('UPYUN_API_DOMAIN')!,
+      protocol: this.configService.get<string>('UPYUN_PROTOCOL')!
     };
     
     this.client = new upyun.Client(service, options);
     
-    this.domain = 'beal-blog-main.test.upcdn.net'; // 访问域名
+    this.domain = this.configService.get<string>('UPYUN_DOMAIN')!;
   }
 
   /**
