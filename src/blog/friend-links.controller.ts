@@ -2,19 +2,32 @@ import { Controller, Get, Post, Body, Put, Param, Delete, Query, ParseIntPipe } 
 import { FriendLinksService } from './friend-links.service'
 import { CreateFriendLinkDto, UpdateFriendLinkDto } from './dto/friend-link.dto'
 import { Permissions } from '../common/permissions.decorator'
+import { Public } from '../auth/public.decorator'
 
-@Controller('friend-links/admin')
-@Permissions('friend_link')
+@Controller('friend-links')
 export class FriendLinksController {
   constructor(private readonly friendLinksService: FriendLinksService) {}
 
-  @Post()
+  // 前台接口
+  @Public()
+  @Get()
+  async getFriendLinks() {
+    const { items } = await this.friendLinksService.findAll({
+      status: 1,
+      take: 100,
+      skip: 0,
+    })
+    return items
+  }
+
+  // 后台接口
+  @Post('admin')
   @Permissions('friend_link.create')
   create(@Body() createFriendLinkDto: CreateFriendLinkDto) {
     return this.friendLinksService.create(createFriendLinkDto)
   }
 
-  @Get()
+  @Get('admin')
   @Permissions('friend_link.read')
   findAll(
     @Query('page', ParseIntPipe) page: number,
@@ -30,13 +43,13 @@ export class FriendLinksController {
     })
   }
 
-  @Get(':id')
+  @Get('admin/:id')
   @Permissions('friend_link.read')
   findOne(@Param('id') id: string) {
     return this.friendLinksService.findOne(id)
   }
 
-  @Put(':id')
+  @Put('admin/:id')
   @Permissions('friend_link.update')
   update(
     @Param('id') id: string,
@@ -45,13 +58,13 @@ export class FriendLinksController {
     return this.friendLinksService.update(id, updateFriendLinkDto)
   }
 
-  @Delete(':id')
+  @Delete('admin/:id')
   @Permissions('friend_link.delete')
   remove(@Param('id') id: string) {
     return this.friendLinksService.remove(id)
   }
 
-  @Put(':id/order')
+  @Put('admin/:id/order')
   @Permissions('friend_link.update')
   updateOrder(
     @Param('id') id: string,
@@ -60,7 +73,7 @@ export class FriendLinksController {
     return this.friendLinksService.updateOrder(id, order)
   }
 
-  @Put(':id/status')
+  @Put('admin/:id/status')
   @Permissions('friend_link.update')
   updateStatus(
     @Param('id') id: string,
