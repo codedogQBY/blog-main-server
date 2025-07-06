@@ -325,7 +325,6 @@ export class WebSeeAdapterService {
 
     // 存储到性能数据表
     if (type === 'longTask' && duration && duration < 500) {
-      console.debug(`Skipping long task with duration ${duration}ms (less than 500ms threshold)`);
       return;
     }
 
@@ -373,33 +372,6 @@ export class WebSeeAdapterService {
       },
       apikey: webSeeData.apikey,
     });
-
-    // 对于长任务，创建告警
-    if (type === 'longTask' && duration && duration >= 500) {
-      await this.alertingService.createAlert({
-        level: 'warning',
-        source,
-        category: 'performance',
-        title: 'Long Task Detected',
-        message: `检测到长任务: ${duration}ms`,
-        details: {
-          longTask: webSeeData.longTask,
-          deviceInfo: webSeeData.deviceInfo,
-          pageUrl: webSeeData.pageUrl,
-        },
-        url: webSeeData.pageUrl || webSeeData.url,
-        userAgent: webSeeData.userAgent,
-        ip: webSeeData.ip,
-        userId: webSeeData.userId,
-        userName: webSeeData.userName,
-        sessionId: webSeeData.sessionId,
-        requestId: webSeeData.requestId,
-        tags: {
-          apikey: webSeeData.apikey,
-          performanceType: 'longTask',
-        },
-      });
-    }
 
     // 对于性能指标异常，创建告警
     if (value !== undefined && webSeeData.rating === 'poor') {
