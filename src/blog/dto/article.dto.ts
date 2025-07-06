@@ -52,6 +52,25 @@ export class CreateArticleDto {
   @IsOptional()
   @Min(1)
   readTime?: number;
+
+  // SEO相关字段
+  @IsString()
+  @IsOptional()
+  @MaxLength(255)
+  metaTitle?: string;
+
+  @IsString()
+  @IsOptional()
+  metaDescription?: string;
+
+  @IsString()
+  @IsOptional()
+  metaKeywords?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  canonicalUrl?: string;
 }
 
 export class UpdateArticleDto {
@@ -99,4 +118,23 @@ export class UpdateArticleDto {
   @IsOptional()
   @Min(1)
   readTime?: number;
+
+  // SEO相关字段
+  @IsString()
+  @IsOptional()
+  @MaxLength(255)
+  metaTitle?: string;
+
+  @IsString()
+  @IsOptional()
+  metaDescription?: string;
+
+  @IsString()
+  @IsOptional()
+  metaKeywords?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  canonicalUrl?: string;
 } 

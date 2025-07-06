@@ -132,6 +132,12 @@ model Article {
   author      User         @relation(fields: [authorId], references: [id])
   category    Category     @relation(fields: [categoryId], references: [id])
   likes       Like[]
+  
+  // SEO相关字段
+  metaTitle       String?   @db.VarChar(255) // SEO标题
+  metaDescription String?   @db.Text // SEO描述
+  metaKeywords    String?   @db.Text // SEO关键词
+  canonicalUrl    String?   @db.VarChar(500) // 规范链接
 
   @@index([authorId], map: "articles_authorId_fkey")
   @@index([categoryId], map: "articles_categoryId_fkey")

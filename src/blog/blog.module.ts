@@ -7,6 +7,7 @@ import { DiaryService } from './diary.service';
 import { GalleryService } from './gallery.service';
 import { DashboardController } from './dashboard.controller';
 import { MailModule } from '../mail/mail.module';
+import { SeoService } from './seo.service';
 
 // Articles
 import { ArticlesController } from './articles.controller';
@@ -76,7 +77,8 @@ import { FriendLinksController } from './friend-links.controller'
     DiaryService,
     AboutService,
     InteractionsService,
-    FriendLinksService
+    FriendLinksService,
+    SeoService
   ],
   exports: [
     ArticlesService,

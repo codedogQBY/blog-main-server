@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateArticleDto, UpdateArticleDto } from './dto/article.dto';
+import { SeoService } from './seo.service';
 
 interface TrendData {
   date: string;
@@ -9,10 +10,13 @@ interface TrendData {
 
 @Injectable()
 export class ArticlesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly seoService: SeoService,
+  ) {}
 
   async create(createArticleDto: CreateArticleDto, authorId: string) {
-    const { title, content, excerpt, coverImage, categoryId, tags, ...rest } = createArticleDto;
+    const { title, content, excerpt, coverImage, categoryId, tags, metaTitle, metaDescription, metaKeywords, canonicalUrl, ...rest } = createArticleDto;
     
     // 生成唯一的slug
     const slug = rest.slug || this.generateSlug(title);
@@ -30,6 +34,11 @@ export class ArticlesService {
         readTime: rest.readTime || this.calculateReadTime(content),
         published: rest.published || false,
         publishedAt: rest.published ? new Date() : null,
+        // SEO字段
+        metaTitle: metaTitle || title,
+        metaDescription: metaDescription || this.generateExcerpt(content, 160),
+        metaKeywords,
+        canonicalUrl,
       },
       include: {
         author: {
@@ -45,6 +54,12 @@ export class ArticlesService {
     // 处理标签关联
     if (tags && tags.length > 0) {
       await this.updateArticleTags(article.id, tags);
+    }
+
+    // 如果文章已发布，提交到搜索引擎
+    if (article.published) {
+      const articleUrl = this.seoService.generateArticleUrl(article.slug);
+      await this.seoService.submitUrls([articleUrl]);
     }
 
     // 重新获取文章以包含标签信息
@@ -389,7 +404,7 @@ export class ArticlesService {
       throw new NotFoundException('文章不存在');
     }
 
-    const { tags, ...updateData } = updateArticleDto;
+    const { tags, metaTitle, metaDescription, metaKeywords, canonicalUrl, ...updateData } = updateArticleDto;
 
     // 处理标签更新
     if (tags) {
@@ -397,13 +412,24 @@ export class ArticlesService {
     }
 
     // 处理发布状态
+    const wasPublished = article.published;
     if (updateData.published !== undefined && updateData.published !== article.published) {
       updateData.publishedAt = updateData.published ? new Date().toISOString() : undefined;
     }
 
-    return this.prisma.article.update({
+    // 处理SEO字段
+    const seoData: any = {};
+    if (metaTitle !== undefined) seoData.metaTitle = metaTitle || article.title;
+    if (metaDescription !== undefined) seoData.metaDescription = metaDescription || this.generateExcerpt(article.content, 160);
+    if (metaKeywords !== undefined) seoData.metaKeywords = metaKeywords;
+    if (canonicalUrl !== undefined) seoData.canonicalUrl = canonicalUrl;
+
+    const updatedArticle = await this.prisma.article.update({
       where: { id },
-      data: updateData,
+      data: {
+        ...updateData,
+        ...seoData,
+      },
       include: {
         author: {
           select: { id: true, name: true },
@@ -414,6 +440,14 @@ export class ArticlesService {
         },
       },
     });
+
+    // 如果文章从未发布变为已发布，提交到搜索引擎
+    if (!wasPublished && updatedArticle.published) {
+      const articleUrl = this.seoService.generateArticleUrl(updatedArticle.slug);
+      await this.seoService.submitUrls([articleUrl]);
+    }
+
+    return updatedArticle;
   }
 
   async remove(id: string) {
