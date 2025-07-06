@@ -82,6 +82,9 @@ export class UserInfoDto {
   @IsString()
   @IsOptional()
   email?: string;
+
+  @IsOptional()
+  isAdmin?: boolean;
 }
 
 // 点赞请求DTO

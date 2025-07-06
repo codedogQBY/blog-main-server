@@ -315,6 +315,7 @@ model InteractionComment {
   isApproved     Boolean              @default(true)
   isDeleted      Boolean              @default(false)
   deletedAt      DateTime?
+  isAdmin        Boolean              @default(false) // 是否为管理员评论
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
   gallery        Gallery?             @relation("GalleryComments", fields: [galleryId], references: [id], onDelete: Cascade)

@@ -231,6 +231,7 @@ export class InteractionsService {
       },
       author: userInfo.nickname,
       email: userInfo.email,
+      isAdmin: userInfo.isAdmin || false, // 保存管理员标识
     };
 
     // 设置父评论
@@ -298,36 +299,51 @@ export class InteractionsService {
     const { targetType, targetId, page = 1, limit = 10 } = dto;
     const skip = (page - 1) * limit;
 
+    const where: any = {
+      targetType,
+      targetId,
+      parentId: null, // 只获取顶级评论
+      isDeleted: false,
+    };
+
     const [comments, total] = await Promise.all([
       this.prisma.interactionComment.findMany({
-        where: {
-          targetType,
-          targetId,
-          parentId: null, // 只获取顶级评论
-          isDeleted: false,
-        },
+        where,
         include: {
-          userInfo: true,
+          userInfo: {
+            select: {
+              nickname: true,
+              city: true,
+              region: true,
+              country: true,
+              deviceType: true,
+              browserName: true,
+              ipAddress: true,
+              email: true,
+              createdAt: true,
+            },
+          },
           replies: {
             where: { isDeleted: false },
             include: {
-              userInfo: true,
+              userInfo: {
+                select: {
+                  nickname: true,
+                  city: true,
+                  region: true,
+                  country: true,
+                  deviceType: true,
+                  browserName: true,
+                },
+              },
             },
-            orderBy: { createdAt: 'asc' },
           },
         },
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
       }),
-      this.prisma.interactionComment.count({
-        where: {
-          targetType,
-          targetId,
-          parentId: null,
-          isDeleted: false,
-        },
-      }),
+      this.prisma.interactionComment.count({ where }),
     ]);
 
     const formattedComments = comments.map(comment => this.formatComment(comment));
@@ -384,20 +400,20 @@ export class InteractionsService {
     return {
       id: comment.id,
       content: comment.content,
-      createdAt: comment.createdAt.toISOString(),
+      createdAt: comment.createdAt,
+      updatedAt: comment.updatedAt,
       userInfo: {
         nickname: comment.author || comment.userInfo?.nickname || '匿名用户',
-        location: comment.userInfo?.city ? 
-          `${comment.userInfo.city}${comment.userInfo.region ? ', ' + comment.userInfo.region : ''}` : 
-          '未知位置',
-        deviceType: comment.userInfo?.deviceType || '未知设备',
-        browserInfo: comment.userInfo ? {
-          name: comment.userInfo.browserName || '未知浏览器',
-          version: comment.userInfo.browserVersion || '',
-          os: comment.userInfo.osName || '未知系统',
+        city: comment.userInfo?.city || '未知',
+        deviceType: comment.userInfo?.deviceType || 'desktop',
+        browserInfo: comment.userInfo?.browserName ? {
+          name: comment.userInfo.browserName,
+          version: comment.userInfo.browserVersion,
+          os: comment.userInfo.osName,
         } : null,
+        isAdmin: comment.isAdmin || false // 使用数据库中的isAdmin字段
       },
-      replies: comment.replies ? comment.replies.map(reply => this.formatComment(reply)) : [],
+      replies: comment.replies?.map(this.formatComment.bind(this)) || [],
     };
   }
 
@@ -539,6 +555,7 @@ export class InteractionsService {
         createdAt: comment.createdAt.toISOString(),
         parentId: comment.parentId,
         isDeleted: comment.isDeleted,
+        isAdmin: comment.isAdmin,
         userInfo: comment.userInfo ? {
           nickname: comment.userInfo.nickname || '匿名用户',
           location: comment.userInfo.city ? 
