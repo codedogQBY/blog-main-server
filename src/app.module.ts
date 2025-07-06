@@ -1,28 +1,29 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
-import { UsersModule } from './users/users.module';
-import { AuthModule } from './auth/auth.module';
 import { AppService } from './app.service';
-import { RbacModule } from './rbac/rbac.module';
+import { PrismaModule } from './prisma/prisma.module';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
 import { BlogModule } from './blog/blog.module';
 import { FilesModule } from './files/files.module';
-import { JwtAuthGuard } from './auth/jwt-auth.guard';
-import { PermissionsGuard } from './common/permissions.guard';
+import { RbacModule } from './rbac/rbac.module';
+import { LoggingModule } from './logging/logging.module';
 
 @Module({
-  imports: [UsersModule, AuthModule, RbacModule, BlogModule, FilesModule],
-  controllers: [AppController],
-  providers: [
-    AppService,
-    {
-      provide: APP_GUARD,
-      useClass: JwtAuthGuard,
-    },
-    {
-      provide: APP_GUARD,
-      useClass: PermissionsGuard,
-    },
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    PrismaModule,
+    AuthModule,
+    UsersModule,
+    BlogModule,
+    FilesModule,
+    RbacModule,
+    LoggingModule,
   ],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}

@@ -490,3 +490,158 @@ model FriendLink {
 
   @@map("friend_links")
 }
+
+// 日志表
+model SystemLog {
+  id          String      @id @default(uuid())
+  timestamp   DateTime    @default(now())
+  level       String      // error, warn, info, debug
+  source      String      // frontend, admin, backend
+  category    String      // js_error, api_error, performance, behavior, system
+  message     String      @db.Text
+  details     String?     @db.Text // JSON格式的详细信息
+  stack       String?     @db.Text // 错误堆栈
+  url         String?     // 页面URL
+  userAgent   String?     // 用户代理
+  ip          String?     // IP地址
+  userId      String?     // 用户ID（如果已登录）
+  userName    String?     // 用户名
+  sessionId   String?     // 会话ID
+  requestId   String?     // 请求ID（用于关联同一请求的多个日志）
+  duration    Int?        // 执行时长（毫秒）
+  memory      Int?        // 内存使用（MB）
+  tags        String?     @db.Text // JSON格式的标签
+  // 录屏相关字段
+  recordScreenId String?  // 录屏ID
+  recordScreen   String?  @db.LongText // 录屏数据（JSON格式）
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([timestamp])
+  @@index([level])
+  @@index([source])
+  @@index([category])
+  @@index([userId])
+  @@index([requestId])
+  @@index([recordScreenId])
+  @@map("system_logs")
+}
+
+// 告警表
+model SystemAlert {
+  id          String      @id @default(uuid())
+  timestamp   DateTime    @default(now())
+  level       String      // critical, error, warning, info
+  source      String      // frontend, admin, backend
+  category    String      // js_error, api_error, performance, security, system
+  title       String      // 告警标题
+  message     String      @db.Text // 告警内容
+  details     String?     @db.Text // JSON格式的详细信息
+  stack       String?     @db.Text // 错误堆栈
+  url         String?     // 页面URL
+  userAgent   String?     // 用户代理
+  ip          String?     // IP地址
+  userId      String?     // 用户ID（如果已登录）
+  userName    String?     // 用户名
+  sessionId   String?     // 会话ID
+  requestId   String?     // 请求ID
+  tags        String?     @db.Text // JSON格式的标签
+  isRead      Boolean     @default(false) // 是否已读
+  isResolved  Boolean     @default(false) // 是否已处理
+  resolvedBy  String?     // 处理人
+  resolvedAt  DateTime?   // 处理时间
+  resolvedNote String?    @db.Text // 处理备注
+  emailSent   Boolean     @default(false) // 是否已发送邮件
+  emailSentAt DateTime?   // 邮件发送时间
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // 关系字段
+  notifications AlertNotification[]
+
+  @@index([timestamp])
+  @@index([level])
+  @@index([source])
+  @@index([category])
+  @@index([isRead])
+  @@index([isResolved])
+  @@index([userId])
+  @@map("system_alerts")
+}
+
+// 告警规则表
+model AlertRule {
+  id          String      @id @default(uuid())
+  name        String      // 规则名称
+  description String?     // 规则描述
+  isEnabled   Boolean     @default(true) // 是否启用
+  source      String?     // 来源（frontend, admin, backend, all）
+  category    String?     // 类别
+  level       String      // 触发级别
+  conditions  String      @db.Text // JSON格式的触发条件
+  actions     String      @db.Text // JSON格式的动作（如发送邮件）
+  cooldown    Int         @default(300) // 冷却时间（秒）
+  lastTriggeredAt DateTime? // 上次触发时间
+  triggerCount Int        @default(0) // 触发次数
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("alert_rules")
+}
+
+// 告警通知记录表
+model AlertNotification {
+  id          String      @id @default(uuid())
+  alertId     String      // 关联的告警ID
+  type        String      // email, sms, webhook等
+  recipient   String      // 接收者（邮箱、手机号等）
+  content     String      @db.Text // 通知内容
+  status      String      // sent, failed, pending
+  error       String?     // 发送失败的错误信息
+  sentAt      DateTime?   // 发送时间
+  createdAt   DateTime    @default(now())
+
+  alert       SystemAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  @@index([alertId])
+  @@index([status])
+  @@index([sentAt])
+  @@map("alert_notifications")
+}
+
+// 性能数据表
+model PerformanceData {
+  id          String      @id @default(uuid())
+  timestamp   DateTime    @default(now())
+  source      String      // frontend, admin
+  type        String      // longTask, firstInput, largestContentfulPaint, firstPaint, firstContentfulPaint, layoutShift
+  name        String?     // 性能指标名称
+  value       Float?      // 性能指标值
+  duration    Int?        // 持续时间（毫秒）
+  url         String?     // 页面URL
+  userAgent   String?     // 用户代理
+  ip          String?     // IP地址
+  userId      String?     // 用户ID
+  userName    String?     // 用户名
+  sessionId   String?     // 会话ID
+  requestId   String?     // 请求ID
+  deviceInfo  String?     @db.Text // JSON格式的设备信息
+  pageUrl     String?     // 页面URL
+  time        BigInt?     // 时间戳
+  status      String?     // 状态
+  sdkVersion  String?     // SDK版本
+  uuid        String?     // 唯一标识
+  details     String?     @db.Text // JSON格式的详细信息
+  tags        String?     @db.Text // JSON格式的标签
+  apikey      String?     // API密钥
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([timestamp])
+  @@index([source])
+  @@index([type])
+  @@index([userId])
+  @@index([sessionId])
+  @@index([apikey])
+  @@map("performance_data")
+}
