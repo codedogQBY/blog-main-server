@@ -478,6 +478,8 @@ model FriendLink {
   order       Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  auditStatus Int      @default(0) // 0: 待审核, 1: 已通过, 2: 已拒绝
+  email       String?  @db.VarChar(255) // 申请人邮箱，用于通知审核结果
 
   @@map("friend_links")
 }

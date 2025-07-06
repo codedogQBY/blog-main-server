@@ -6,6 +6,7 @@ import { InteractionsService } from './interactions.service';
 import { DiaryService } from './diary.service';
 import { GalleryService } from './gallery.service';
 import { DashboardController } from './dashboard.controller';
+import { MailModule } from '../mail/mail.module';
 
 // Articles
 import { ArticlesController } from './articles.controller';
@@ -49,6 +50,7 @@ import { FriendLinksController } from './friend-links.controller'
   imports: [
     PrismaModule,
     UsersModule,
+    MailModule,
   ],
   controllers: [
     DashboardController,

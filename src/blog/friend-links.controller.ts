@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Put, Param, Delete, Query, ParseIntPipe } from '@nestjs/common'
 import { FriendLinksService } from './friend-links.service'
-import { CreateFriendLinkDto, UpdateFriendLinkDto } from './dto/friend-link.dto'
+import { CreateFriendLinkDto, UpdateFriendLinkDto, ApplyFriendLinkDto, AuditFriendLinkDto } from './dto/friend-link.dto'
 import { Permissions } from '../common/permissions.decorator'
 import { Public } from '../auth/public.decorator'
 
@@ -18,6 +18,12 @@ export class FriendLinksController {
       skip: 0,
     })
     return items
+  }
+
+  @Public()
+  @Post('apply')
+  async applyFriendLink(@Body() applyFriendLinkDto: ApplyFriendLinkDto) {
+    return this.friendLinksService.applyFriendLink(applyFriendLinkDto)
   }
 
   // 后台接口
@@ -56,6 +62,15 @@ export class FriendLinksController {
     @Body() updateFriendLinkDto: UpdateFriendLinkDto
   ) {
     return this.friendLinksService.update(id, updateFriendLinkDto)
+  }
+
+  @Put('admin/:id/audit')
+  @Permissions('friend_link.update')
+  audit(
+    @Param('id') id: string,
+    @Body() auditFriendLinkDto: AuditFriendLinkDto
+  ) {
+    return this.friendLinksService.audit(id, auditFriendLinkDto)
   }
 
   @Delete('admin/:id')
