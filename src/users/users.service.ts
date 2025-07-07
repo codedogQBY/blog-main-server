@@ -20,7 +20,18 @@ export class UsersService {
   }
 
   async validateUser(mail: string, password: string): Promise<User | null> {
-    const user = await this.findByEmail(mail);
+    const user = await this.prisma.user.findUnique({ 
+      where: { mail },
+      include: {
+        role: {
+          include: {
+            perms: {
+              include: { permission: true }
+            }
+          }
+        }
+      }
+    });
     if (!user) return null;
     const match = await bcrypt.compare(password, user.passwordHash);
     return match ? user : null;

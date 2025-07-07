@@ -210,4 +210,62 @@ export class TwoFactorService {
       console.error('发送2FA设置邮件失败:', error);
     }
   }
+
+  /**
+   * 新2FA设置流程：只生成密钥（前端生成二维码）
+   */
+  async generateSecretOnly(userId: string, userEmail: string): Promise<string> {
+    const secret = speakeasy.generateSecret({
+      name: `Blog Admin (${userEmail})`,
+      issuer: 'Blog Admin',
+      length: 32,
+    });
+
+    return secret.base32;
+  }
+
+  /**
+   * 新2FA设置流程：启用2FA并返回备份码
+   */
+  async enableTwoFactorWithBackup(userId: string, token: string, secret: string): Promise<{ backupCodes: string[] }> {
+    // 获取用户信息
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { 
+        name: true, 
+        mail: true,
+        twoFactorEnabled: true
+      },
+    });
+    
+    if (!user) {
+      throw new Error('用户不存在');
+    }
+
+    // 验证token
+    if (!this.verifyToken(token, secret)) {
+      throw new Error('验证码错误');
+    }
+
+    // 生成备份码
+    const backupCodes = this.generateBackupCodes();
+    
+    // 启用2FA
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        twoFactorEnabled: true,
+        twoFactorSecret: secret,
+        backupCodes: JSON.stringify(backupCodes),
+        twoFactorSetupAt: new Date(),
+      },
+    });
+    
+    // 发送设置成功邮件
+    await this.sendTwoFactorSetupEmail(user.mail, user.name, backupCodes);
+    
+    return { backupCodes };
+  }
+
+
 } 

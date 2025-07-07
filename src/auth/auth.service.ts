@@ -27,8 +27,11 @@ export class AuthService {
     const user = await this.validateUser(dto.mail, dto.password);
     if (!user) throw new UnauthorizedException('Invalid credentials');
     
+    // 使用类型断言来访问2FA字段
+    const userWithTwoFA = user as any;
+    
     // 检查用户是否启用了2FA
-    if (user.twoFactorEnabled) {
+    if (userWithTwoFA.twoFactorEnabled) {
       // 如果启用了2FA，返回需要验证的信息
       return {
         requires2FA: true,
@@ -37,8 +40,19 @@ export class AuthService {
       };
     }
     
-    // 如果没有启用2FA，直接返回token
-    return this.signToken(user.id);
+    // 如果没有启用2FA，返回用户信息和token，前端判断是否需要设置2FA
+    const token = await this.signToken(user.id);
+    return {
+      ...token,
+      user: {
+        id: user.id,
+        name: user.name,
+        mail: user.mail,
+        twoFactorEnabled: userWithTwoFA.twoFactorEnabled ?? false,
+        isSuperAdmin: user.isSuperAdmin
+      },
+      needsSetup2FA: !(userWithTwoFA.twoFactorEnabled ?? false) // 标识是否需要设置2FA
+    };
   }
 
   async register(dto: RegisterDto) {
@@ -74,6 +88,14 @@ export class AuthService {
   }
 
   private async signToken(userId: string) {
+    const payload = await this.buildPayload(userId);
+    return {
+      accessToken: this.jwt.sign(payload, { secret: jwtConstants.secret }),
+    };
+  }
+
+  // 公共方法，供其他服务使用
+  async generateToken(userId: string) {
     const payload = await this.buildPayload(userId);
     return {
       accessToken: this.jwt.sign(payload, { secret: jwtConstants.secret }),

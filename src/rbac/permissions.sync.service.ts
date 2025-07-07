@@ -56,26 +56,59 @@ export class PermissionsSyncService {
     let name: string;
     let description: string;
 
-    switch (actionCode) {
-      case 'create':
-        name = `创建${resourceName}`;
-        description = `允许创建${resourceName}`;
-        break;
-      case 'read':
-        name = `查看${resourceName}`;
-        description = `允许查看${resourceName}`;
-        break;
-      case 'update':
-        name = `更新${resourceName}`;
-        description = `允许更新${resourceName}`;
-        break;
-      case 'delete':
-        name = `删除${resourceName}`;
-        description = `允许删除${resourceName}`;
-        break;
-      default:
-        name = `${resourceName}${actionCode}`;
-        description = `允许${resourceName}${actionCode}`;
+    // 特殊权限点处理
+    if (groupCode === 'two_factor') {
+      switch (actionCode) {
+        case 'bind':
+          name = '绑定2FA';
+          description = '允许绑定双因素认证';
+          break;
+        case 'unbind':
+          name = '解绑2FA';
+          description = '允许解绑双因素认证';
+          break;
+        case 'verify':
+          name = '验证2FA';
+          description = '允许验证双因素认证';
+          break;
+        case 'recovery':
+          name = '2FA恢复';
+          description = '允许使用备用码恢复2FA';
+          break;
+        case 'unlock':
+          name = '解锁用户';
+          description = '允许解锁被锁定的用户';
+          break;
+        case 'stats':
+          name = '2FA统计';
+          description = '允许查看2FA统计信息';
+          break;
+        default:
+          name = `2FA${actionCode}`;
+          description = `允许2FA${actionCode}`;
+      }
+    } else {
+      switch (actionCode) {
+        case 'create':
+          name = `创建${resourceName}`;
+          description = `允许创建${resourceName}`;
+          break;
+        case 'read':
+          name = `查看${resourceName}`;
+          description = `允许查看${resourceName}`;
+          break;
+        case 'update':
+          name = `更新${resourceName}`;
+          description = `允许更新${resourceName}`;
+          break;
+        case 'delete':
+          name = `删除${resourceName}`;
+          description = `允许删除${resourceName}`;
+          break;
+        default:
+          name = `${resourceName}${actionCode}`;
+          description = `允许${resourceName}${actionCode}`;
+      }
     }
 
     return {
