@@ -37,13 +37,14 @@ async function main() {
   }
 
   // 4. Create default admin user if not exists
-  const adminEmail = 'admin@admin.com';
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@admin.com';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
   const existingAdmin = await prisma.user.findUnique({
     where: { mail: adminEmail }
   });
 
   if (!existingAdmin) {
-    const hashedPassword = await bcrypt.hash('admin123', 10);
+    const hashedPassword = await bcrypt.hash(adminPassword, 10);
     const adminUser = await prisma.user.create({
       data: {
         name: 'Super Admin',
