@@ -54,15 +54,11 @@ export class AiService {
         // 清理和验证生成的slug
         const cleanSlug = this.cleanSlug(generatedSlug);
 
-        this.logger.log(`为标题"${title}"生成slug: ${cleanSlug}`);
         return cleanSlug;
       }
 
       throw new Error('AI服务返回空响应');
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '未知错误';
-      const errorStack = error instanceof Error ? error.stack : undefined;
-      this.logger.error(`生成slug失败: ${errorMessage}`, errorStack);
+    } catch {
       // 如果AI服务失败，回退到本地生成方法
       return this.generateFallbackSlug(title);
     }
@@ -102,15 +98,11 @@ export class AiService {
         // 限制摘要长度
         const cleanExcerpt = this.cleanExcerpt(generatedExcerpt);
 
-        this.logger.log(`为标题"${title}"生成摘要: ${cleanExcerpt}`);
         return cleanExcerpt;
       }
 
       throw new Error('AI服务返回空响应');
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '未知错误';
-      const errorStack = error instanceof Error ? error.stack : undefined;
-      this.logger.error(`生成摘要失败: ${errorMessage}`, errorStack);
+    } catch {
       // 如果AI服务失败，回退到本地生成方法
       return this.generateFallbackExcerpt(title, content);
     }
@@ -162,20 +154,14 @@ export class AiService {
           // 验证和清理SEO内容
           const cleanSEOContent = this.cleanSEOContent(seoContent);
 
-          this.logger.log(`为标题"${title}"生成SEO内容:`, cleanSEOContent);
           return cleanSEOContent;
-        } catch (parseError) {
-          this.logger.error('解析SEO内容JSON失败:', parseError);
-          this.logger.error('原始内容:', content);
+        } catch {
           throw new Error('AI返回的SEO内容格式错误');
         }
       }
 
       throw new Error('AI服务返回空响应');
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '未知错误';
-      const errorStack = error instanceof Error ? error.stack : undefined;
-      this.logger.error(`生成SEO内容失败: ${errorMessage}`, errorStack);
+    } catch {
       // 如果AI服务失败，回退到本地生成方法
       return this.generateFallbackSEOContent(title, content);
     }
