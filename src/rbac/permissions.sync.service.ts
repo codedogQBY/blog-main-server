@@ -167,21 +167,26 @@ export class PermissionsSyncService {
             description = '友链相关权限';
             sort = 70;
             break;
-            case 'log':
-              name = '系统日志';
-              description = '系统日志相关权限';
-              sort = 80;
-              break;
-            case 'alert':
-              name = '系统告警';
-              description = '系统告警相关权限';
-              sort = 81;
-              break;
-            case 'performance':
-              name = '性能分析';
-              description = '性能分析相关权限';
-              sort = 82;
-              break;
+          case 'log':
+            name = '系统日志';
+            description = '系统日志相关权限';
+            sort = 80;
+            break;
+          case 'alert':
+            name = '系统告警';
+            description = '系统告警相关权限';
+            sort = 81;
+            break;
+          case 'performance':
+            name = '性能分析';
+            description = '性能分析相关权限';
+            sort = 82;
+            break;
+          case 'two_factor':
+            name = '双因素认证';
+            description = '双因素认证相关权限';
+            sort = 83;
+            break;
           default:
             name = '其他';
             description = '其他权限';

@@ -18,12 +18,12 @@ model Role {
 
 model PermissionGroup {
   id          String       @id @default(uuid()) @db.Char(36)
-  name        String      @db.VarChar(100)
-  code        String      @unique @db.VarChar(100)
-  description String?     @db.Text
-  sort        Int         @default(0)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  name        String       @db.VarChar(100)
+  code        String       @unique @db.VarChar(100)
+  description String?      @db.Text
+  sort        Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   permissions Permission[]
 
   @@map("permission_groups")
@@ -31,14 +31,14 @@ model PermissionGroup {
 
 model Permission {
   id          String           @id @default(uuid()) @db.Char(36)
-  name        String          @db.VarChar(100)
-  code        String          @unique @db.VarChar(100)
-  description String?         @db.Text
-  groupId     String?         @db.Char(36)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  roles       RolePermission[]
+  name        String           @db.VarChar(100)
+  code        String           @unique @db.VarChar(100)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  description String?          @db.Text
+  groupId     String?          @db.Char(36)
   group       PermissionGroup? @relation(fields: [groupId], references: [id])
+  roles       RolePermission[]
 
   @@index([groupId], map: "permissions_groupId_fkey")
 }
@@ -54,17 +54,28 @@ model RolePermission {
 }
 
 model User {
-  id           String    @id @default(uuid()) @db.Char(36)
-  name         String    @db.VarChar(50)
-  mail         String    @unique @db.VarChar(100)
-  passwordHash String    @db.VarChar(255)
-  isSuperAdmin Boolean   @default(false)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  roleId       String?   @db.Char(36)
-  articles     Article[]
-  files        File[]
-  role         Role?     @relation(fields: [roleId], references: [id])
+  id               String    @id @default(uuid()) @db.Char(36)
+  name             String    @db.VarChar(50)
+  mail             String    @unique @db.VarChar(100)
+  passwordHash     String    @db.VarChar(255)
+  isSuperAdmin     Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  roleId           String?   @db.Char(36)
+  backupCodes      String?   @db.Text
+  twoFactorEnabled Boolean   @default(false)
+  twoFactorSecret  String?   @db.VarChar(255)
+  twoFactorSetupAt DateTime?
+  articles         Article[]
+  files            File[]
+  role             Role?     @relation(fields: [roleId], references: [id])
+
+  // 2FA辅助表反向关系
+  twoFactorAttempts TwoFactorAttempt[]
+  userLocks         UserLock[]
+  twoFactorRecoveries TwoFactorRecovery[]
+  twoFactorLogs     TwoFactorLog[]   @relation("UserLog")
+  adminLogs         TwoFactorLog[]   @relation("AdminLog")
 
   @@index([mail])
   @@index([roleId], map: "users_roleId_fkey")
@@ -114,30 +125,28 @@ model Tag {
 }
 
 model Article {
-  id          String       @id @default(uuid())
-  title       String
-  content     String       @db.Text
-  excerpt     String?
-  coverImage  String?
-  slug        String       @unique
-  published   Boolean      @default(false)
-  views       Int          @default(0)
-  readTime    Int?
-  publishedAt DateTime?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  authorId    String
-  categoryId  String
-  tags        ArticleTag[]
-  author      User         @relation(fields: [authorId], references: [id])
-  category    Category     @relation(fields: [categoryId], references: [id])
-  likes       Like[]
-  
-  // SEO相关字段
-  metaTitle       String?   @db.VarChar(255) // SEO标题
-  metaDescription String?   @db.Text // SEO描述
-  metaKeywords    String?   @db.Text // SEO关键词
-  canonicalUrl    String?   @db.VarChar(500) // 规范链接
+  id              String       @id @default(uuid())
+  title           String
+  content         String       @db.Text
+  excerpt         String?
+  coverImage      String?
+  slug            String       @unique
+  published       Boolean      @default(false)
+  views           Int          @default(0)
+  readTime        Int?
+  publishedAt     DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  authorId        String
+  categoryId      String
+  canonicalUrl    String?      @db.VarChar(500)
+  metaDescription String?      @db.Text
+  metaKeywords    String?      @db.Text
+  metaTitle       String?      @db.VarChar(255)
+  tags            ArticleTag[]
+  author          User         @relation(fields: [authorId], references: [id])
+  category        Category     @relation(fields: [categoryId], references: [id])
+  likes           Like[]
 
   @@index([authorId], map: "articles_authorId_fkey")
   @@index([categoryId], map: "articles_categoryId_fkey")
@@ -198,9 +207,9 @@ model StickyNote {
   author    String
   category  String?
   color     String               @default("#fbbf24")
-  status    String               @default("public") // public, private
   createdAt DateTime             @default(now())
   updatedAt DateTime             @updatedAt
+  status    String               @default("public")
   comments  InteractionComment[]
   likes     Like[]
 
@@ -212,10 +221,10 @@ model DiaryNote {
   title     String   @db.VarChar(200)
   content   String   @db.Text
   excerpt   String?  @db.VarChar(500)
-  images    String?  @db.Text // JSON字符串存储图片URL数组
-  weather   String   @default("sunny") // sunny, cloudy, rainy, snowy, partly-cloudy
-  mood      Int      @default(0) // 心情值 0-5
-  status    String   @default("public") // public, private
+  images    String?  @db.Text
+  weather   String   @default("sunny")
+  mood      Int      @default(0)
+  status    String   @default("public")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -223,29 +232,29 @@ model DiaryNote {
 }
 
 model DiarySignature {
-  id           String   @id @default(uuid())
-  signatureName String  @db.VarChar(50)
-  fontFamily   String   @default("'Kalam', cursive")
-  fontSize     String   @default("2xl")
-  color        String   @default("gray-400")
-  rotation     String   @default("12") // 旋转角度
-  isActive     Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String   @id @default(uuid())
+  signatureName String   @db.VarChar(50)
+  fontFamily    String   @default("'Kalam', cursive")
+  fontSize      String   @default("2xl")
+  color         String   @default("gray-400")
+  rotation      String   @default("12")
+  isActive      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@map("diary_signatures")
 }
 
 model DiaryWeatherConfig {
-  id           String   @id @default(uuid())
-  weatherType  String   @unique // sunny, cloudy, rainy, snowy, partly-cloudy
-  weatherName  String   @db.VarChar(32)
-  icon         String?  @db.VarChar(100)
-  description  String?  @db.VarChar(200)
-  isEnabled    Boolean  @default(true)
-  sort         Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String   @id @default(uuid())
+  weatherType String   @unique
+  weatherName String   @db.VarChar(32)
+  icon        String?  @db.VarChar(100)
+  description String?  @db.VarChar(200)
+  isEnabled   Boolean  @default(true)
+  sort        Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@map("diary_weather_config")
 }
@@ -255,13 +264,13 @@ model Gallery {
   title       String
   description String?              @db.Text
   category    String?
-  tags        String?              @db.Text // JSON字符串
-  coverImage  String?              // 封面图片URL
-  status      String               @default("published") // published, draft
+  tags        String?              @db.Text
+  coverImage  String?
+  status      String               @default("published")
   sort        Int                  @default(0)
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
-  images      GalleryImage[]       // 图集包含的图片
+  images      GalleryImage[]
   comments    InteractionComment[] @relation("GalleryComments")
   likes       Like[]               @relation("GalleryLikes")
 
@@ -269,34 +278,34 @@ model Gallery {
 }
 
 model GalleryImage {
-  id          String               @id @default(uuid())
+  id          String   @id @default(uuid())
   title       String?
-  description String?              @db.Text
+  description String?  @db.Text
   imageUrl    String
-  sort        Int                  @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   galleryId   String
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
-  gallery     Gallery              @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+  sort        Int      @default(0)
+  gallery     Gallery  @relation(fields: [galleryId], references: [id], onDelete: Cascade)
 
   @@index([galleryId], map: "gallery_images_galleryId_fkey")
   @@map("gallery_images")
 }
 
 model Like {
-  id             String        @id @default(uuid())
-  fingerprint    String
-  targetType     String
-  targetId       String
-  articleId      String?
-  stickyNoteId   String?
-  galleryId      String?
-  userInfoId     String?
-  createdAt      DateTime      @default(now())
-  article        Article?      @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  gallery        Gallery?      @relation("GalleryLikes", fields: [galleryId], references: [id], onDelete: Cascade)
-  stickyNote     StickyNote?   @relation(fields: [stickyNoteId], references: [id], onDelete: Cascade)
-  userInfo       UserInfo?     @relation(fields: [userInfoId], references: [id])
+  id           String      @id @default(uuid())
+  fingerprint  String
+  targetType   String
+  targetId     String
+  articleId    String?
+  stickyNoteId String?
+  userInfoId   String?
+  createdAt    DateTime    @default(now())
+  galleryId    String?
+  article      Article?    @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  gallery      Gallery?    @relation("GalleryLikes", fields: [galleryId], references: [id], onDelete: Cascade)
+  stickyNote   StickyNote? @relation(fields: [stickyNoteId], references: [id], onDelete: Cascade)
+  userInfo     UserInfo?   @relation(fields: [userInfoId], references: [id])
 
   @@unique([fingerprint, targetType, targetId])
   @@index([articleId], map: "likes_articleId_fkey")
@@ -307,28 +316,28 @@ model Like {
 }
 
 model InteractionComment {
-  id             String               @id @default(uuid())
-  content        String               @db.Text
-  author         String?
-  email          String?
-  fingerprint    String
-  targetType     String
-  targetId       String
-  stickyNoteId   String?
-  galleryId      String?
-  parentId       String?
-  userInfoId     String?
-  isApproved     Boolean              @default(true)
-  isDeleted      Boolean              @default(false)
-  deletedAt      DateTime?
-  isAdmin        Boolean              @default(false) // 是否为管理员评论
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
-  gallery        Gallery?             @relation("GalleryComments", fields: [galleryId], references: [id], onDelete: Cascade)
-  parent         InteractionComment?  @relation("InteractionCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies        InteractionComment[] @relation("InteractionCommentReplies")
-  stickyNote     StickyNote?          @relation(fields: [stickyNoteId], references: [id], onDelete: Cascade)
-  userInfo       UserInfo?            @relation(fields: [userInfoId], references: [id])
+  id           String               @id @default(uuid())
+  content      String               @db.Text
+  author       String?
+  email        String?
+  fingerprint  String
+  targetType   String
+  targetId     String
+  stickyNoteId String?
+  parentId     String?
+  userInfoId   String?
+  isApproved   Boolean              @default(true)
+  isDeleted    Boolean              @default(false)
+  deletedAt    DateTime?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  galleryId    String?
+  isAdmin      Boolean              @default(false)
+  gallery      Gallery?             @relation("GalleryComments", fields: [galleryId], references: [id], onDelete: Cascade)
+  parent       InteractionComment?  @relation("InteractionCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies      InteractionComment[] @relation("InteractionCommentReplies")
+  stickyNote   StickyNote?          @relation(fields: [stickyNoteId], references: [id], onDelete: Cascade)
+  userInfo     UserInfo?            @relation(fields: [userInfoId], references: [id])
 
   @@index([galleryId], map: "interaction_comments_galleryId_fkey")
   @@index([parentId], map: "interaction_comments_parentId_fkey")
@@ -416,17 +425,17 @@ model ActivityLog {
 }
 
 model About {
-  id              String          @id @default(uuid())
-  heroAvatar      String?         @db.Text
-  heroSignature   String?         @db.VarChar(200)
-  introTitle      String          @db.VarChar(200)
-  introContent    String          @db.Text // JSON数组存储多段内容
-  introLogo       String?         @db.Text
-  status          String          @default("active") // active, inactive
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  tags            AboutTag[]
-  sections        AboutSection[]
+  id            String         @id @default(uuid())
+  heroAvatar    String?        @db.Text
+  heroSignature String?        @db.VarChar(200)
+  introTitle    String         @db.VarChar(200)
+  introContent  String         @db.Text
+  introLogo     String?        @db.Text
+  status        String         @default("active")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  sections      AboutSection[]
+  tags          AboutTag[]
 
   @@map("about")
 }
@@ -434,7 +443,7 @@ model About {
 model AboutTag {
   id        String   @id @default(uuid())
   content   String   @db.VarChar(100)
-  position  String   @default("left") // left, right
+  position  String   @default("left")
   sort      Int      @default(0)
   aboutId   String
   createdAt DateTime @default(now())
@@ -446,15 +455,15 @@ model AboutTag {
 }
 
 model AboutSection {
-  id        String        @id @default(uuid())
-  title     String        @db.VarChar(200)
-  content   String        @db.Text // JSON数组存储多段内容
-  sort      Int           @default(0)
+  id        String       @id @default(uuid())
+  title     String       @db.VarChar(200)
+  content   String       @db.Text
+  sort      Int          @default(0)
   aboutId   String
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  about     About         @relation(fields: [aboutId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
   images    AboutImage[]
+  about     About        @relation(fields: [aboutId], references: [id], onDelete: Cascade)
 
   @@index([aboutId], map: "about_sections_aboutId_fkey")
   @@map("about_sections")
@@ -481,41 +490,39 @@ model FriendLink {
   url         String   @db.VarChar(255)
   logo        String?  @db.VarChar(255)
   description String?  @db.VarChar(255)
-  status      Int      @default(1) // 1: 正常, 0: 禁用
+  status      Int      @default(1)
   order       Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  auditStatus Int      @default(0) // 0: 待审核, 1: 已通过, 2: 已拒绝
-  email       String?  @db.VarChar(255) // 申请人邮箱，用于通知审核结果
+  auditStatus Int      @default(0)
+  email       String?  @db.VarChar(255)
 
   @@map("friend_links")
 }
 
-// 日志表
 model SystemLog {
-  id          String      @id @default(uuid())
-  timestamp   DateTime    @default(now())
-  level       String      // error, warn, info, debug
-  source      String      // frontend, admin, backend
-  category    String      // js_error, api_error, performance, behavior, system
-  message     String      @db.Text
-  details     String?     @db.Text // JSON格式的详细信息
-  stack       String?     @db.Text // 错误堆栈
-  url         String?     // 页面URL
-  userAgent   String?     // 用户代理
-  ip          String?     // IP地址
-  userId      String?     // 用户ID（如果已登录）
-  userName    String?     // 用户名
-  sessionId   String?     // 会话ID
-  requestId   String?     // 请求ID（用于关联同一请求的多个日志）
-  duration    Int?        // 执行时长（毫秒）
-  memory      Int?        // 内存使用（MB）
-  tags        String?     @db.Text // JSON格式的标签
-  // 录屏相关字段
-  recordScreenId String?  // 录屏ID
-  recordScreen   String?  @db.LongText // 录屏数据（JSON格式）
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id             String   @id @default(uuid())
+  timestamp      DateTime @default(now())
+  level          String
+  source         String
+  category       String
+  message        String   @db.Text
+  details        String?  @db.Text
+  stack          String?  @db.Text
+  url            String?
+  userAgent      String?
+  ip             String?
+  userId         String?
+  userName       String?
+  sessionId      String?
+  requestId      String?
+  duration       Int?
+  memory         Int?
+  tags           String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  recordScreen   String?  @db.LongText
+  recordScreenId String?
 
   @@index([timestamp])
   @@index([level])
@@ -527,36 +534,33 @@ model SystemLog {
   @@map("system_logs")
 }
 
-// 告警表
 model SystemAlert {
-  id          String      @id @default(uuid())
-  timestamp   DateTime    @default(now())
-  level       String      // critical, error, warning, info
-  source      String      // frontend, admin, backend
-  category    String      // js_error, api_error, performance, security, system
-  title       String      // 告警标题
-  message     String      @db.Text // 告警内容
-  details     String?     @db.Text // JSON格式的详细信息
-  stack       String?     @db.Text // 错误堆栈
-  url         String?     // 页面URL
-  userAgent   String?     // 用户代理
-  ip          String?     // IP地址
-  userId      String?     // 用户ID（如果已登录）
-  userName    String?     // 用户名
-  sessionId   String?     // 会话ID
-  requestId   String?     // 请求ID
-  tags        String?     @db.Text // JSON格式的标签
-  isRead      Boolean     @default(false) // 是否已读
-  isResolved  Boolean     @default(false) // 是否已处理
-  resolvedBy  String?     // 处理人
-  resolvedAt  DateTime?   // 处理时间
-  resolvedNote String?    @db.Text // 处理备注
-  emailSent   Boolean     @default(false) // 是否已发送邮件
-  emailSentAt DateTime?   // 邮件发送时间
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-
-  // 关系字段
+  id            String              @id @default(uuid())
+  timestamp     DateTime            @default(now())
+  level         String
+  source        String
+  category      String
+  title         String
+  message       String              @db.Text
+  details       String?             @db.Text
+  stack         String?             @db.Text
+  url           String?
+  userAgent     String?
+  ip            String?
+  userId        String?
+  userName      String?
+  sessionId     String?
+  requestId     String?
+  tags          String?             @db.Text
+  isRead        Boolean             @default(false)
+  isResolved    Boolean             @default(false)
+  resolvedBy    String?
+  resolvedAt    DateTime?
+  resolvedNote  String?             @db.Text
+  emailSent     Boolean             @default(false)
+  emailSentAt   DateTime?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
   notifications AlertNotification[]
 
   @@index([timestamp])
@@ -569,39 +573,36 @@ model SystemAlert {
   @@map("system_alerts")
 }
 
-// 告警规则表
 model AlertRule {
-  id          String      @id @default(uuid())
-  name        String      // 规则名称
-  description String?     // 规则描述
-  isEnabled   Boolean     @default(true) // 是否启用
-  source      String?     // 来源（frontend, admin, backend, all）
-  category    String?     // 类别
-  level       String      // 触发级别
-  conditions  String      @db.Text // JSON格式的触发条件
-  actions     String      @db.Text // JSON格式的动作（如发送邮件）
-  cooldown    Int         @default(300) // 冷却时间（秒）
-  lastTriggeredAt DateTime? // 上次触发时间
-  triggerCount Int        @default(0) // 触发次数
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id              String    @id @default(uuid())
+  name            String
+  description     String?
+  isEnabled       Boolean   @default(true)
+  source          String?
+  category        String?
+  level           String
+  conditions      String    @db.Text
+  actions         String    @db.Text
+  cooldown        Int       @default(300)
+  lastTriggeredAt DateTime?
+  triggerCount    Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@map("alert_rules")
 }
 
-// 告警通知记录表
 model AlertNotification {
-  id          String      @id @default(uuid())
-  alertId     String      // 关联的告警ID
-  type        String      // email, sms, webhook等
-  recipient   String      // 接收者（邮箱、手机号等）
-  content     String      @db.Text // 通知内容
-  status      String      // sent, failed, pending
-  error       String?     // 发送失败的错误信息
-  sentAt      DateTime?   // 发送时间
-  createdAt   DateTime    @default(now())
-
-  alert       SystemAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  id        String      @id @default(uuid())
+  alertId   String
+  type      String
+  recipient String
+  content   String      @db.Text
+  status    String
+  error     String?
+  sentAt    DateTime?
+  createdAt DateTime    @default(now())
+  alert     SystemAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
 
   @@index([alertId])
   @@index([status])
@@ -609,33 +610,32 @@ model AlertNotification {
   @@map("alert_notifications")
 }
 
-// 性能数据表
 model PerformanceData {
-  id          String      @id @default(uuid())
-  timestamp   DateTime    @default(now())
-  source      String      // frontend, admin
-  type        String      // longTask, firstInput, largestContentfulPaint, firstPaint, firstContentfulPaint, layoutShift
-  name        String?     // 性能指标名称
-  value       Float?      // 性能指标值
-  duration    Int?        // 持续时间（毫秒）
-  url         String?     // 页面URL
-  userAgent   String?     // 用户代理
-  ip          String?     // IP地址
-  userId      String?     // 用户ID
-  userName    String?     // 用户名
-  sessionId   String?     // 会话ID
-  requestId   String?     // 请求ID
-  deviceInfo  String?     @db.Text // JSON格式的设备信息
-  pageUrl     String?     // 页面URL
-  time        BigInt?     // 时间戳
-  status      String?     // 状态
-  sdkVersion  String?     // SDK版本
-  uuid        String?     // 唯一标识
-  details     String?     @db.Text // JSON格式的详细信息
-  tags        String?     @db.Text // JSON格式的标签
-  apikey      String?     // API密钥
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id         String   @id @default(uuid())
+  timestamp  DateTime @default(now())
+  source     String
+  type       String
+  name       String?
+  value      Float?
+  duration   Int?
+  url        String?
+  userAgent  String?
+  ip         String?
+  userId     String?
+  userName   String?
+  sessionId  String?
+  requestId  String?
+  deviceInfo String?  @db.Text
+  pageUrl    String?
+  time       BigInt?
+  status     String?
+  sdkVersion String?
+  uuid       String?
+  details    String?  @db.Text
+  tags       String?  @db.Text
+  apikey     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([timestamp])
   @@index([source])
@@ -644,4 +644,45 @@ model PerformanceData {
   @@index([sessionId])
   @@index([apikey])
   @@map("performance_data")
+}
+
+model TwoFactorAttempt {
+  id          String   @id @default(uuid()) @db.Char(36)
+  user        User?    @relation(fields: [userId], references: [id])
+  userId      String?  @db.Char(36)
+  ipAddress   String?  @db.VarChar(45)
+  attemptType String   @db.VarChar(20) // 'totp', 'backup_code'
+  success     Boolean
+  createdAt   DateTime @default(now())
+}
+
+model UserLock {
+  id         String   @id @default(uuid()) @db.Char(36)
+  user       User?    @relation(fields: [userId], references: [id])
+  userId     String?  @db.Char(36)
+  lockType   String   @db.VarChar(20) // 'totp', 'backup_code', 'login'
+  lockedUntil DateTime?
+  createdAt  DateTime @default(now())
+}
+
+model TwoFactorRecovery {
+  id          String   @id @default(uuid()) @db.Char(36)
+  user        User?    @relation(fields: [userId], references: [id])
+  userId      String?  @db.Char(36)
+  email       String   @db.VarChar(100)
+  recoveryCode String  @db.VarChar(6)
+  expiresAt   DateTime
+  used        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model TwoFactorLog {
+  id        String   @id @default(uuid()) @db.Char(36)
+  user      User?    @relation("UserLog", fields: [userId], references: [id])
+  userId    String?  @db.Char(36)
+  action    String   @db.VarChar(50)
+  details   Json?
+  admin     User?    @relation("AdminLog", fields: [adminId], references: [id])
+  adminId   String?  @db.Char(36)
+  createdAt DateTime @default(now())
 }

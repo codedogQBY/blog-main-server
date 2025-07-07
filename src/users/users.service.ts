@@ -70,6 +70,9 @@ export class UsersService {
         mail: user.mail,
         isSuperAdmin: user.isSuperAdmin,
         role: user.role,
+        twoFactorEnabled: user.twoFactorEnabled,
+        twoFactorSetupAt: user.twoFactorSetupAt,
+        backupCodes: user.backupCodes,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
       })),

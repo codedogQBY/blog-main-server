@@ -26,6 +26,18 @@ export class AuthService {
   async login(dto: LoginDto) {
     const user = await this.validateUser(dto.mail, dto.password);
     if (!user) throw new UnauthorizedException('Invalid credentials');
+    
+    // 检查用户是否启用了2FA
+    if (user.twoFactorEnabled) {
+      // 如果启用了2FA，返回需要验证的信息
+      return {
+        requires2FA: true,
+        userId: user.id,
+        message: '需要2FA验证'
+      };
+    }
+    
+    // 如果没有启用2FA，直接返回token
     return this.signToken(user.id);
   }
 

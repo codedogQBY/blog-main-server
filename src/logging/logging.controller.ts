@@ -68,7 +68,7 @@ export class LoggingController {
           level: processedData.level || 'info',
           source: processedData.source || 'frontend',
           category: processedData.category || 'system',
-          message: processedData.message,
+          message: processedData.message || 'No message provided',
           details: processedData.details,
           stack: processedData.stack,
           url: processedData.url,

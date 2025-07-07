@@ -10,6 +10,10 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { jwtConstants } from './constants';
 import { PrismaService } from '../prisma/prisma.service';
+import { TwoFactorService } from './two-factor.service';
+import { TwoFactorController } from './two-factor.controller';
+import { TwoFactorAuxiliaryService } from './two-factor-auxiliary.service';
+import { TwoFactorAuxiliaryController } from './two-factor-auxiliary.controller';
 
 @Module({
   imports: [
@@ -28,7 +32,10 @@ import { PrismaService } from '../prisma/prisma.service';
     MailService,
     VerificationService,
     PrismaService,
+    TwoFactorService,
+    TwoFactorAuxiliaryService,
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, TwoFactorController, TwoFactorAuxiliaryController],
+  exports: [AuthService],
 })
 export class AuthModule {}
