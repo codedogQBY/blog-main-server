@@ -9,6 +9,7 @@ import { BlogModule } from './blog/blog.module';
 import { FilesModule } from './files/files.module';
 import { RbacModule } from './rbac/rbac.module';
 import { LoggingModule } from './logging/logging.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { LoggingModule } from './logging/logging.module';
     FilesModule,
     RbacModule,
     LoggingModule,
+    AiModule,
   ],
   controllers: [AppController],
   providers: [AppService],
