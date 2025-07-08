@@ -17,7 +17,7 @@ export class TwoFactorAuxiliaryService {
     attemptType: 'totp' | 'backup_code',
     success: boolean,
   ) {
-    return this.prisma.twoFactorAttempt.create({
+    const attempt = await this.prisma.twoFactorAttempt.create({
       data: {
         userId,
         ipAddress,
@@ -25,6 +25,49 @@ export class TwoFactorAuxiliaryService {
         success,
       },
     });
+
+    // 如果验证失败，检查是否需要自动锁定
+    if (!success) {
+      await this.checkAndLockUser(userId, attemptType);
+    }
+
+    return attempt;
+  }
+
+  /**
+   * 检查并自动锁定用户
+   */
+  private async checkAndLockUser(userId: string, attemptType: 'totp' | 'backup_code') {
+    const now = new Date();
+    const timeWindow = new Date(now.getTime() - 15 * 60 * 1000); // 15分钟内
+
+    // 获取最近的失败尝试
+    const recentFailures = await this.prisma.twoFactorAttempt.count({
+      where: {
+        userId,
+        attemptType,
+        success: false,
+        createdAt: { gte: timeWindow },
+      },
+    });
+
+    // 检查是否已锁定
+    const isLocked = await this.isUserLocked(userId, attemptType);
+    if (isLocked.locked) {
+      return; // 已经锁定，不需要重复锁定
+    }
+
+    // 锁定条件：15分钟内连续失败5次
+    if (recentFailures >= 5) {
+      await this.lockUser(userId, attemptType, 30); // 锁定30分钟
+      
+      // 记录锁定日志
+      await this.logAction(userId, 'AUTO_LOCK', {
+        reason: `连续${recentFailures}次${attemptType}验证失败`,
+        lockType: attemptType,
+        duration: 30,
+      });
+    }
   }
 
   /**

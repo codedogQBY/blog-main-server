@@ -77,6 +77,18 @@ export class TwoFactorAuxiliaryController {
   }
 
   /**
+   * 检查指定用户是否被锁定（管理员）
+   */
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('two_factor.read')
+  @Get('locks/check-user')
+  async checkUserLock(@Query('userId') userId: string, @Query('type') lockType?: string) {
+    if (!userId) throw new BadRequestException('用户ID不能为空');
+    
+    return this.auxiliaryService.isUserLocked(userId, lockType);
+  }
+
+  /**
    * 获取用户自己的锁定记录
    */
   @UseGuards(JwtAuthGuard)

@@ -5,13 +5,48 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 import { PermissionsGuard } from '../common/permissions.guard';
 import { Permissions } from '../common/permissions.decorator';
 import { Request } from 'express';
+import { TwoFactorAuxiliaryService } from './two-factor-auxiliary.service';
 
 @Controller('auth/two-factor')
 export class TwoFactorController {
   constructor(
     private readonly twoFactorService: TwoFactorService,
     private readonly authService: AuthService,
+    private readonly auxiliaryService: TwoFactorAuxiliaryService,
   ) {}
+
+  /**
+   * 获取客户端真实IP地址
+   */
+  private getClientIp(req: Request): string {
+    // 优先从代理头获取真实IP
+    const xForwardedFor = req.headers['x-forwarded-for'] as string;
+    if (xForwardedFor) {
+      const ips = xForwardedFor.split(',').map(ip => ip.trim());
+      return ips[0] || 'unknown';
+    }
+    
+    // 从其他代理头获取
+    const xRealIp = req.headers['x-real-ip'] as string;
+    if (xRealIp) {
+      return xRealIp;
+    }
+    
+    // 从CF-Connecting-IP获取（Cloudflare）
+    const cfConnectingIp = req.headers['cf-connecting-ip'] as string;
+    if (cfConnectingIp) {
+      return cfConnectingIp;
+    }
+    
+    // 从X-Forwarded-For获取
+    const xForwarded = req.headers['x-forwarded'] as string;
+    if (xForwarded) {
+      return xForwarded;
+    }
+    
+    // 最后使用Express的ip属性或连接地址
+    return req.ip || req.connection?.remoteAddress || req.socket?.remoteAddress || 'unknown';
+  }
 
   // 获取二维码和密钥（需登录）
   @UseGuards(JwtAuthGuard)
@@ -39,8 +74,10 @@ export class TwoFactorController {
 
   // 登录时校验2FA（登录后返回需要2FA的标志，前端再调用此接口）
   @Post('verify')
-  async verify(@Body() body: { userId: string; token: string }) {
+  async verify(@Body() body: { userId: string; token: string }, @Req() req: Request) {
     const { userId, token } = body;
+    const ipAddress = this.getClientIp(req);
+    
     // 查找用户密钥
     const user = await this.twoFactorService['prisma'].user.findUnique({
       where: { id: userId },
@@ -53,10 +90,22 @@ export class TwoFactorController {
         twoFactorEnabled: true
       },
     });
-    if (!user?.twoFactorSecret) throw new BadRequestException('未绑定2FA');
-    if (!this.twoFactorService.verifyToken(token, user.twoFactorSecret)) {
+    
+    if (!user?.twoFactorSecret) {
+      // 记录失败尝试
+      await this.auxiliaryService.recordAttempt(userId, ipAddress, 'totp', false);
+      throw new BadRequestException('未绑定2FA');
+    }
+    
+    const isValid = this.twoFactorService.verifyToken(token, user.twoFactorSecret);
+    
+    // 记录尝试
+    await this.auxiliaryService.recordAttempt(userId, ipAddress, 'totp', isValid);
+    
+    if (!isValid) {
       throw new BadRequestException('验证码错误');
     }
+    
     // 通过后生成完整的登录信息
     const tokenResult = await this.authService.generateToken(user.id);
     return {
@@ -189,10 +238,19 @@ export class TwoFactorController {
 
   // 校验备用验证码（登录时）
   @Post('verify-backup-code')
-  async verifyBackupCode(@Body() body: { userId: string; code: string }) {
+  async verifyBackupCode(@Body() body: { userId: string; code: string }, @Req() req: Request) {
     const { userId, code } = body;
+    const ipAddress = this.getClientIp(req);
+    
+    // 验证备用码
     const ok = await this.twoFactorService.verifyBackupCode(userId, code);
-    if (!ok) throw new BadRequestException('备用验证码错误');
+    
+    // 记录尝试
+    await this.auxiliaryService.recordAttempt(userId, ipAddress, 'backup_code', ok);
+    
+    if (!ok) {
+      throw new BadRequestException('备用验证码错误');
+    }
     
     // 验证成功后，获取用户信息
     const user = await this.twoFactorService['prisma'].user.findUnique({

@@ -9,6 +9,7 @@ import { UsersService } from '../users/users.service';
 import { jwtConstants } from './constants';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { TwoFactorAuxiliaryService } from './two-factor-auxiliary.service';
 
 @Injectable()
 export class AuthService {
@@ -16,6 +17,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwt: JwtService,
     private readonly verification: VerificationService,
+    private readonly auxiliaryService: TwoFactorAuxiliaryService,
   ) {}
 
   async validateUser(mail: string, password: string) {
@@ -26,6 +28,12 @@ export class AuthService {
   async login(dto: LoginDto) {
     const user = await this.validateUser(dto.mail, dto.password);
     if (!user) throw new UnauthorizedException('Invalid credentials');
+    
+    // 检查用户是否被锁定
+    const lockStatus = await this.auxiliaryService.isUserLocked(user.id);
+    if (lockStatus.locked) {
+      throw new UnauthorizedException(`账户已被锁定，剩余时间：${lockStatus.remainingMinutes}分钟`);
+    }
     
     // 使用类型断言来访问2FA字段
     const userWithTwoFA = user as any;
