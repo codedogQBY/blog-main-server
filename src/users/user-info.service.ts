@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { UserInfoDto } from '../blog/dto/interaction.dto';
 
 export interface UserInfoFilters {
   search?: string;
@@ -22,6 +23,22 @@ export interface UserInfoStats {
 @Injectable()
 export class UserInfoService {
   constructor(private prisma: PrismaService) {}
+
+  async track(fingerprint: string, userInfo: UserInfoDto) {
+    // 只更新活跃时间和IP，其他字段只在首次创建时写入
+    return this.prisma.userInfo.upsert({
+      where: { fingerprint },
+      update: {
+        ipAddress: userInfo.ipAddress,
+        lastActiveAt: new Date(),
+      },
+      create: {
+        fingerprint,
+        ...userInfo,
+        lastActiveAt: new Date(),
+      },
+    });
+  }
 
   async findAll(
     page: number = 1,
@@ -130,9 +147,7 @@ export class UserInfoService {
 
   async batchDelete(ids: string[]) {
     return this.prisma.userInfo.deleteMany({
-      where: {
-        id: { in: ids },
-      },
+      where: { id: { in: ids } },
     });
   }
 
@@ -300,6 +315,7 @@ export class UserInfoService {
     return {
       filename: `user-info-${new Date().toISOString().split('T')[0]}.csv`,
       content: csvContent,
+      contentType: 'text/csv',
     };
   }
 } 

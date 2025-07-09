@@ -22,13 +22,29 @@ export class InteractionsController {
 
   @Post('like')
   @Public()
-  async toggleLike(@Body() dto: ToggleLikeDto) {
+  async toggleLike(@Body() dto: ToggleLikeDto, @Request() req) {
+    // 自动获取IP地址
+    const ip = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || '127.0.0.1';
+    
+    // 如果前端没有传递IP，使用后端获取的IP
+    if (!dto.userInfo.ipAddress) {
+      dto.userInfo.ipAddress = ip;
+    }
+    
     return this.interactionsService.toggleLike(dto);
   }
 
   @Post('comment')
   @Public()
-  async createComment(@Body() dto: CreateCommentDto) {
+  async createComment(@Body() dto: CreateCommentDto, @Request() req) {
+    // 自动获取IP地址
+    const ip = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || '127.0.0.1';
+    
+    // 如果前端没有传递IP，使用后端获取的IP
+    if (!dto.userInfo.ipAddress) {
+      dto.userInfo.ipAddress = ip;
+    }
+    
     return this.interactionsService.createComment(dto);
   }
 

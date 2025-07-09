@@ -9,15 +9,32 @@ import {
   Query,
   UseGuards,
   NotFoundException,
+  Request,
 } from '@nestjs/common';
 import { UserInfoService } from './user-info.service';
 import { Permissions } from '../common/permissions.decorator';
 import { PermissionsGuard } from '../common/permissions.guard';
 import { AuthGuard } from '@nestjs/passport';
+import { Public } from '../auth/public.decorator';
+import { UserInfoDto } from '../blog/dto/interaction.dto';
 
 @Controller('user-info')
 export class UserInfoController {
   constructor(private readonly userInfoService: UserInfoService) {}
+
+  @Post('track')
+  @Public()
+  async track(@Body() dto: { fingerprint: string; userInfo: UserInfoDto }, @Request() req) {
+    // 自动获取IP地址
+    const ip = req.ip || req.connection?.remoteAddress || req.headers['x-forwarded-for'] || '127.0.0.1';
+    
+    // 如果前端没有传递IP，使用后端获取的IP
+    if (!dto.userInfo.ipAddress) {
+      dto.userInfo.ipAddress = ip;
+    }
+    
+    return this.userInfoService.track(dto.fingerprint, dto.userInfo);
+  }
 
   @Get()
   @UseGuards(AuthGuard('jwt'), PermissionsGuard)
@@ -44,6 +61,23 @@ export class UserInfoController {
   @Permissions('userinfo.read')
   async getStats() {
     return this.userInfoService.getStats();
+  }
+
+  @Get('export')
+  @UseGuards(AuthGuard('jwt'), PermissionsGuard)
+  @Permissions('userinfo.read')
+  async exportCsv(
+    @Query('search') search?: string,
+    @Query('country') country?: string,
+    @Query('deviceType') deviceType?: string,
+    @Query('browserName') browserName?: string,
+  ) {
+    return this.userInfoService.exportCsv({
+      search,
+      country,
+      deviceType,
+      browserName,
+    });
   }
 
   @Get(':id')
@@ -88,29 +122,5 @@ export class UserInfoController {
     }
 
     return this.userInfoService.remove(id);
-  }
-
-  @Post('batch-delete')
-  @UseGuards(AuthGuard('jwt'), PermissionsGuard)
-  @Permissions('userinfo.delete')
-  async batchDelete(@Body() dto: { ids: string[] }) {
-    return this.userInfoService.batchDelete(dto.ids);
-  }
-
-  @Get('export/csv')
-  @UseGuards(AuthGuard('jwt'), PermissionsGuard)
-  @Permissions('userinfo.read')
-  async exportCsv(
-    @Query('search') search?: string,
-    @Query('country') country?: string,
-    @Query('deviceType') deviceType?: string,
-    @Query('browserName') browserName?: string,
-  ) {
-    return this.userInfoService.exportCsv({
-      search,
-      country,
-      deviceType,
-      browserName,
-    });
   }
 } 
