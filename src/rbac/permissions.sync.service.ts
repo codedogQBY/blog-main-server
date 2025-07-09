@@ -150,6 +150,11 @@ export class PermissionsSyncService {
             description = '用户相关权限';
             sort = 62;
             break;
+          case 'userinfo':
+            name = '游客管理';
+            description = '游客信息相关权限';
+            sort = 63;
+            break;
           case 'article':
             name = '文章管理';
             description = '文章相关权限';
@@ -219,6 +224,11 @@ export class PermissionsSyncService {
             name = '双因素认证';
             description = '双因素认证相关权限';
             sort = 83;
+            break;
+          case 'system':
+            name = '系统管理';
+            description = '系统管理相关权限';
+            sort = 84;
             break;
           default:
             name = '其他';
