@@ -7,6 +7,7 @@ import { AuthService } from './auth.service';
 import { MailService } from '../mail/mail.service';
 import { VerificationService } from './verification.service';
 import { AuthController } from './auth.controller';
+import { ProfileController } from './profile.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { jwtConstants } from './constants';
 import { PrismaService } from '../prisma/prisma.service';
@@ -35,7 +36,7 @@ import { TwoFactorAuxiliaryController } from './two-factor-auxiliary.controller'
     TwoFactorService,
     TwoFactorAuxiliaryService,
   ],
-  controllers: [AuthController, TwoFactorController, TwoFactorAuxiliaryController],
+  controllers: [AuthController, ProfileController, TwoFactorController, TwoFactorAuxiliaryController],
   exports: [AuthService],
 })
 export class AuthModule {}

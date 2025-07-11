@@ -88,16 +88,26 @@ export class UsersController {
     // 检查是否是修改自己的信息
     const isSelf = currentUser.sub === id;
     
-    // 如果是修改自己的信息
     if (isSelf) {
-      // 检查用户是否有修改个人信息的权限
-      if (!currentUser.permissions.includes('user.update.self') && !currentUser.isSuperAdmin) {
-        throw new ForbiddenException('您没有权限修改个人信息');
+      // 修改自己的信息时，需要检查权限
+      const hasUserUpdate = currentUser.permissions.includes('user.update') || currentUser.isSuperAdmin;
+      const hasBasicUpdate = currentUser.permissions.includes('user.update.basic');
+      
+      if (!hasUserUpdate && !hasBasicUpdate) {
+        throw new ForbiddenException('您没有权限修改用户信息，请使用个人信息接口修改基础信息');
       }
       
-      // 普通用户不能修改自己的角色和超级管理员状态
-      if ((dto.roleId !== undefined || dto.isSuperAdmin !== undefined) && !currentUser.isSuperAdmin) {
-        throw new ForbiddenException('您没有权限修改自己的角色或超级管理员状态');
+      // 基础权限不能修改角色和超级管理员状态
+      if (hasBasicUpdate && !hasUserUpdate) {
+        if (dto.roleId !== undefined || dto.isSuperAdmin !== undefined) {
+          throw new ForbiddenException('您只有基础修改权限，不能修改角色或超级管理员状态');
+        }
+      }
+      
+      // 超级管理员降权检查：如果当前是超级管理员，要取消超级管理员状态，需要特别确认
+      if (currentUser.isSuperAdmin && dto.isSuperAdmin === false) {
+        // 这里可以添加额外的验证逻辑，比如要求提供当前密码等
+        console.warn(`超级管理员 ${currentUser.sub} 正在取消自己的超级管理员状态`);
       }
     } else {
       // 修改其他用户的信息
