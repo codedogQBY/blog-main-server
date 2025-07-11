@@ -17,7 +17,6 @@
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
-    "suppressImplicitAnyIndexErrors": true,
     "noImplicitReturns": false,
     "noImplicitThis": false
   }
