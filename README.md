@@ -1,84 +1,35 @@
-# 🚀 博客后端服务 (Blog Server)
+# 🚀 博客后端服务 (Blog Main Server)
 
-一个功能完整的博客后端API服务，基于 NestJS 和 Prisma 构建，提供完整的博客功能和管理系统支持。
+一个功能完整的博客后端API服务，基于 NestJS 和 Prisma 构建，支持本地开发和 Vercel 无服务器部署。
 
 ## ✨ 特性
 
 - 🚀 **现代技术栈**: NestJS + Prisma + TypeScript
-- 🔐 **完整认证**: JWT + 邮箱验证 + RBAC权限系统
+- 🔐 **完整认证**: JWT + 双因素认证(2FA) + RBAC权限系统
 - 📝 **内容管理**: 文章、分类、标签、随记管理
 - 💬 **互动功能**: 评论、留言、点赞系统
-- 📁 **文件管理**: 文件上传、存储、CDN集成
+- 📁 **文件管理**: 文件上传、存储、又拍云CDN集成
 - 🔒 **安全特性**: 权限控制、数据验证、安全中间件
 - 📊 **数据库**: MySQL + Prisma ORM
-- 📧 **邮件服务**: 邮箱验证和通知
-- 🐳 **容器化**: Docker 支持
-- 📈 **可扩展**: 模块化架构设计
+- 📧 **邮件服务**: 邮箱验证和通知系统
+- 🌐 **跨域支持**: CORS 配置和跨域资源共享
+- ☁️ **无服务器**: 支持 Vercel 无服务器部署
+- 🤖 **AI集成**: 支持智谱AI接口
+- 📈 **访客统计**: 游客访问统计和IP地理位置
+- 🛡️ **系统配置**: 灵活的系统配置管理
 
 ## 🛠️ 技术栈
 
-- **框架**: NestJS 10
+- **框架**: NestJS 11
 - **数据库**: MySQL 8.0 + Prisma ORM
-- **认证**: JWT + Passport
+- **认证**: JWT + Passport + 双因素认证
 - **语言**: TypeScript
 - **验证**: class-validator + class-transformer
 - **邮件**: NodeMailer
 - **文件存储**: 又拍云 CDN
-- **容器**: Docker + Docker Compose
-- **文档**: Swagger/OpenAPI
-
-## 📦 项目结构
-
-```
-src/
-├── app.module.ts          # 应用主模块
-├── main.ts               # 应用入口
-├── auth/                 # 认证模块
-│   ├── auth.controller.ts    # 认证控制器
-│   ├── auth.service.ts       # 认证服务
-│   ├── jwt.strategy.ts       # JWT策略
-│   ├── guards/              # 守卫
-│   └── dto/                 # 数据传输对象
-├── blog/                 # 博客模块
-│   ├── articles.controller.ts    # 文章控制器
-│   ├── articles.service.ts       # 文章服务
-│   ├── categories.controller.ts  # 分类控制器
-│   ├── categories.service.ts     # 分类服务
-│   ├── tags.controller.ts        # 标签控制器
-│   ├── tags.service.ts           # 标签服务
-│   ├── diary.controller.ts       # 随记控制器
-│   ├── diary.service.ts          # 随记服务
-│   ├── interactions.controller.ts # 互动控制器
-│   ├── interactions.service.ts    # 互动服务
-│   ├── sticky-notes.controller.ts # 留言控制器
-│   ├── sticky-notes.service.ts    # 留言服务
-│   └── dto/                      # 数据传输对象
-├── files/                # 文件管理模块
-│   ├── files.controller.ts   # 文件控制器
-│   ├── files.service.ts      # 文件服务
-│   ├── upyun.service.ts      # 又拍云服务
-│   └── dto/                  # 数据传输对象
-├── users/                # 用户管理模块
-│   ├── users.controller.ts   # 用户控制器
-│   ├── users.service.ts      # 用户服务
-│   └── dto/                  # 数据传输对象
-├── rbac/                 # 权限管理模块
-│   ├── roles.controller.ts      # 角色控制器
-│   ├── roles.service.ts         # 角色服务
-│   ├── permissions.controller.ts # 权限控制器
-│   ├── permissions.service.ts    # 权限服务
-│   └── guards/                   # 权限守卫
-├── mail/                 # 邮件服务模块
-│   └── mail.service.ts       # 邮件服务
-├── prisma/               # 数据库模块
-│   ├── prisma.service.ts     # Prisma服务
-│   └── schema.prisma         # 数据库模型
-└── common/               # 通用模块
-    ├── decorators/           # 装饰器
-    ├── guards/              # 守卫
-    ├── filters/             # 异常过滤器
-    └── interceptors/        # 拦截器
-```
+- **部署**: Vercel 无服务器
+- **AI服务**: 智谱AI
+- **身份验证**: Speakeasy (2FA)
 
 ## 🚀 快速开始
 
@@ -88,22 +39,22 @@ src/
 - MySQL 8.0 或更高版本
 - npm/pnpm/yarn
 
-### 安装
+### 本地开发
 
-1. 克隆项目
+1. **克隆项目**
 ```bash
-git clone <repository-url>
+git clone https://github.com/codedogQBY/blog-main-server.git
 cd blog-main-server
 ```
 
-2. 安装依赖
+2. **安装依赖**
 ```bash
 npm install
 # 或
 pnpm install
 ```
 
-3. 配置环境变量
+3. **配置环境变量**
 ```bash
 cp .env.example .env
 ```
@@ -111,30 +62,46 @@ cp .env.example .env
 编辑 `.env` 文件：
 ```env
 # 数据库配置
-DATABASE_URL="mysql://username:password@localhost:3306/blog_db"
+DATABASE_URL="mysql://username:password@hostname:port/database_name"
 
-# JWT 配置
-JWT_SECRET="your-super-secret-jwt-key"
-JWT_EXPIRES_IN="7d"
+# JWT配置
+JWT_SECRET=your-super-secret-jwt-key-here
+JWT_EXPIRES_IN=7d
 
-# 邮件配置
-SMTP_HOST="smtp.gmail.com"
-SMTP_PORT=587
-SMTP_USER="your-email@gmail.com"
-SMTP_PASS="your-app-password"
+# 邮件服务配置
+SMTP_HOST=smtp.163.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=your-email@163.com
+SMTP_PASS=your-smtp-password
+SMTP_FROM="your-email@163.com"
 
-# 又拍云配置
-UPYUN_SERVICE_NAME="your-service-name"
-UPYUN_OPERATOR_NAME="your-operator"
-UPYUN_OPERATOR_PASSWORD="your-password"
-UPYUN_DOMAIN="https://your-domain.com"
+# 管理员账户配置
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=admin123
 
-# 应用配置
-PORT=3001
+# 又拍云存储配置
+UPYUN_BUCKET=your-bucket-name
+UPYUN_OPERATOR=your-operator
+UPYUN_PASSWORD=your-upyun-password
+UPYUN_DOMAIN=your-domain.upcdn.net
+UPYUN_API_DOMAIN=v0.api.upyun.com
+UPYUN_PROTOCOL=http
+
+# 环境配置
 NODE_ENV=development
+DEV_VERIFICATION_CODE=123456
+
+# SEO配置
+SITE_URL=https://your-domain.com
+BAIDU_SEO_TOKEN=
+GOOGLE_SEO_TOKEN=
+
+# AI服务配置
+ZHIPU_API_KEY=your-zhipu-api-key
 ```
 
-4. 数据库初始化
+4. **数据库初始化**
 ```bash
 # 生成 Prisma 客户端
 npx prisma generate
@@ -146,197 +113,158 @@ npx prisma migrate dev
 npx prisma db seed
 ```
 
-5. 创建管理员用户
-```bash
-npm run create-admin
-```
-
-6. 启动开发服务器
+5. **启动开发服务器**
 ```bash
 npm run start:dev
 ```
 
 访问 [http://localhost:3001](http://localhost:3001) 查看应用。
 
-### 使用 Docker
+## ☁️ Vercel 部署
 
+### 部署步骤
+
+1. **全局安装 Vercel CLI**
 ```bash
-# 使用 Docker Compose 启动
-docker-compose up -d
-
-# 查看日志
-docker-compose logs -f
+npm install -g vercel
 ```
+
+2. **登录 Vercel**
+```bash
+vercel login
+```
+
+3. **部署项目**
+```bash
+vercel
+```
+
+4. **配置环境变量**
+在 Vercel Dashboard 中设置以下环境变量：
+```env
+DATABASE_URL=mysql://username:password@hostname:port/database_name
+JWT_SECRET=your-super-secret-jwt-key-here
+JWT_EXPIRES_IN=7d
+SMTP_HOST=smtp.163.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=your-email@163.com
+SMTP_PASS=your-smtp-password
+SMTP_FROM="your-email@163.com"
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=admin123
+UPYUN_BUCKET=your-bucket-name
+UPYUN_OPERATOR=your-operator
+UPYUN_PASSWORD=your-upyun-password
+UPYUN_DOMAIN=your-domain.upcdn.net
+UPYUN_API_DOMAIN=v0.api.upyun.com
+UPYUN_PROTOCOL=http
+NODE_ENV=production
+SITE_URL=https://your-vercel-domain.vercel.app
+ZHIPU_API_KEY=your-zhipu-api-key
+```
+
+5. **重新部署**
+```bash
+vercel --prod
+```
+
+### 部署配置
+
+项目已配置以下文件支持 Vercel 部署：
+
+- `vercel.json` - Vercel 部署配置
+- `api/index.ts` - Vercel 函数入口点
+- `.vercelignore` - 忽略文件配置
+
+### CORS 配置
+
+项目已配置 CORS 支持，允许跨域请求：
+- 支持所有来源 (`*`)
+- 支持所有 HTTP 方法
+- 支持常用请求头
 
 ## 📚 API 文档
 
-启动服务后，访问以下地址查看 API 文档：
+### 主要接口
 
-- Swagger UI: [http://localhost:3001/api-docs](http://localhost:3001/api-docs)
-- JSON 规范: [http://localhost:3001/api-docs-json](http://localhost:3001/api-docs-json)
-
-## 🔧 核心功能
-
-### 🔐 认证系统
-
-#### 用户注册/登录
+#### 🔐 认证接口
 ```typescript
-POST /api/auth/register
-POST /api/auth/login
-POST /api/auth/logout
-POST /api/auth/refresh
+POST /auth/login               # 用户登录
+POST /auth/register           # 用户注册
+POST /auth/logout             # 用户登出
+POST /auth/refresh            # 刷新令牌
+POST /auth/verify-email       # 邮箱验证
+POST /auth/send-verification-code  # 发送验证码
+POST /auth/enable-2fa         # 启用双因素认证
+POST /auth/verify-2fa         # 验证双因素认证
 ```
 
-#### 邮箱验证
+#### 📝 文章管理
 ```typescript
-POST /api/auth/send-verification-code
-POST /api/auth/verify-email
+GET    /articles              # 获取文章列表
+GET    /articles/:id          # 获取文章详情
+POST   /articles              # 创建文章
+PUT    /articles/:id          # 更新文章
+DELETE /articles/:id          # 删除文章
 ```
 
-### 📝 博客管理
-
-#### 文章管理
+#### 📓 随记系统
 ```typescript
-GET    /api/articles              # 获取文章列表
-GET    /api/articles/:id          # 获取文章详情
-POST   /api/articles              # 创建文章
-PUT    /api/articles/:id          # 更新文章
-DELETE /api/articles/:id          # 删除文章
+GET    /diary/notes           # 获取随记列表
+GET    /diary/notes/:id       # 获取随记详情
+POST   /diary/admin/notes     # 创建随记
+PUT    /diary/admin/notes/:id # 更新随记
+DELETE /diary/admin/notes/:id # 删除随记
 ```
 
-#### 分类管理
+#### 💬 互动功能
 ```typescript
-GET    /api/categories            # 获取分类列表
-POST   /api/categories            # 创建分类
-PUT    /api/categories/:id        # 更新分类
-DELETE /api/categories/:id        # 删除分类
+GET    /interactions          # 获取评论列表
+POST   /interactions          # 创建评论
+PUT    /interactions/:id      # 更新评论
+DELETE /interactions/:id      # 删除评论
 ```
 
-#### 标签管理
+#### 📁 文件管理
 ```typescript
-GET    /api/tags                  # 获取标签列表
-POST   /api/tags                  # 创建标签
-PUT    /api/tags/:id              # 更新标签
-DELETE /api/tags/:id              # 删除标签
+POST   /files/upload          # 上传文件
+GET    /files                 # 获取文件列表
+DELETE /files/:id             # 删除文件
 ```
 
-### 📓 随记系统
-
-#### 随记管理
+#### 👥 用户管理
 ```typescript
-GET    /api/diary/notes           # 获取随记列表
-GET    /api/diary/notes/:id       # 获取随记详情
-POST   /api/diary/admin/notes     # 创建随记
-PUT    /api/diary/admin/notes/:id # 更新随记
-DELETE /api/diary/admin/notes/:id # 删除随记
+GET    /users                 # 获取用户列表
+GET    /users/:id             # 获取用户详情
+POST   /users                 # 创建用户
+PUT    /users/:id             # 更新用户
+DELETE /users/:id             # 删除用户
 ```
 
-#### 签名管理
+#### 🔒 权限管理
 ```typescript
-GET    /api/diary/signature       # 获取当前签名
-POST   /api/diary/admin/signatures # 创建签名
-PUT    /api/diary/admin/signatures/:id # 更新签名
-DELETE /api/diary/admin/signatures/:id # 删除签名
+GET    /roles                 # 获取角色列表
+POST   /roles                 # 创建角色
+PUT    /roles/:id             # 更新角色
+DELETE /roles/:id             # 删除角色
+GET    /permissions           # 获取权限列表
+POST   /permissions/sync      # 同步权限
 ```
 
-### 💬 互动功能
-
-#### 评论系统
+#### 📊 系统管理
 ```typescript
-GET    /api/interactions          # 获取评论列表
-POST   /api/interactions          # 创建评论
-PUT    /api/interactions/:id      # 更新评论
-DELETE /api/interactions/:id      # 删除评论
-```
-
-#### 留言墙
-```typescript
-GET    /api/sticky-notes          # 获取留言列表
-POST   /api/sticky-notes          # 创建留言
-PUT    /api/sticky-notes/:id      # 更新留言
-DELETE /api/sticky-notes/:id      # 删除留言
-```
-
-### 📁 文件管理
-
-```typescript
-POST   /api/files/upload          # 上传文件
-GET    /api/files                 # 获取文件列表
-DELETE /api/files/:id             # 删除文件
-```
-
-### 👥 用户管理
-
-```typescript
-GET    /api/users                 # 获取用户列表
-POST   /api/users                 # 创建用户
-PUT    /api/users/:id             # 更新用户
-DELETE /api/users/:id             # 删除用户
-```
-
-### 🔒 权限管理
-
-#### 角色管理
-```typescript
-GET    /api/roles                 # 获取角色列表
-POST   /api/roles                 # 创建角色
-PUT    /api/roles/:id             # 更新角色
-DELETE /api/roles/:id             # 删除角色
-```
-
-#### 权限管理
-```typescript
-GET    /api/permissions           # 获取权限列表
-POST   /api/permissions           # 创建权限
-PUT    /api/permissions/:id       # 更新权限
-DELETE /api/permissions/:id       # 删除权限
-POST   /api/permissions/sync      # 同步权限
-```
-
-## 🗄️ 数据库模型
-
-### 主要实体
-
-- **User**: 用户信息
-- **Role**: 角色定义
-- **Permission**: 权限定义
-- **Article**: 文章内容
-- **Category**: 文章分类
-- **Tag**: 文章标签
-- **DiaryNote**: 随记内容
-- **DiarySignature**: 签名配置
-- **DiaryWeatherConfig**: 天气配置
-- **Interaction**: 评论互动
-- **StickyNote**: 留言墙
-- **File**: 文件管理
-
-### 关系设计
-
-```prisma
-model User {
-  id          Int      @id @default(autoincrement())
-  email       String   @unique
-  username    String?
-  roles       UserRole[]
-  articles    Article[]
-  // ...
-}
-
-model Article {
-  id          Int      @id @default(autoincrement())
-  title       String
-  content     String   @db.Text
-  author      User     @relation(fields: [authorId], references: [id])
-  category    Category @relation(fields: [categoryId], references: [id])
-  tags        ArticleTag[]
-  // ...
-}
+GET    /system/config         # 获取系统配置
+PUT    /system/config         # 更新系统配置
+GET    /userinfo              # 获取游客信息
+GET    /userinfo/export       # 导出游客数据
 ```
 
 ## 🔒 权限系统
 
 ### RBAC 设计
 
+项目采用基于角色的访问控制（RBAC）：
 - **用户 (User)**: 系统使用者
 - **角色 (Role)**: 权限集合
 - **权限 (Permission)**: 具体操作权限
@@ -344,7 +272,6 @@ model Article {
 ### 权限格式
 
 权限采用 `资源.操作` 格式：
-
 ```typescript
 // 文章权限
 'article.read'
@@ -358,11 +285,9 @@ model Article {
 'user.update'
 'user.delete'
 
-// 角色权限
-'role.read'
-'role.create'
-'role.update'
-'role.delete'
+// 系统权限
+'system.config'
+'system.userinfo'
 ```
 
 ### 权限装饰器
@@ -386,16 +311,11 @@ npm run start:dev
 # 生产模式
 npm run start:prod
 
-# 调试模式
-npm run start:debug
-
 # 构建
 npm run build
 
 # 测试
 npm run test
-npm run test:e2e
-npm run test:cov
 
 # 代码检查
 npm run lint
@@ -410,65 +330,12 @@ npx prisma generate
 
 # 数据库迁移
 npx prisma migrate dev
-npx prisma migrate deploy
-
-# 数据库重置
-npx prisma migrate reset
 
 # 查看数据库
 npx prisma studio
 
 # 种子数据
 npx prisma db seed
-```
-
-## 🚀 部署指南
-
-### 使用 Docker
-
-1. 构建镜像
-```bash
-docker build -t blog-server .
-```
-
-2. 运行容器
-```bash
-docker run -p 3001:3001 \
-  -e DATABASE_URL="your-database-url" \
-  -e JWT_SECRET="your-jwt-secret" \
-  blog-server
-```
-
-### 使用 PM2
-
-1. 全局安装 PM2
-```bash
-npm install -g pm2
-```
-
-2. 构建应用
-```bash
-npm run build
-```
-
-3. 启动应用
-```bash
-pm2 start dist/main.js --name blog-server
-```
-
-### 环境变量
-
-生产环境必需的环境变量：
-
-```env
-NODE_ENV=production
-DATABASE_URL="mysql://user:pass@host:port/database"
-JWT_SECRET="your-super-secret-jwt-key"
-JWT_EXPIRES_IN="7d"
-SMTP_HOST="smtp.gmail.com"
-SMTP_PORT=587
-SMTP_USER="your-email@gmail.com"
-SMTP_PASS="your-app-password"
 ```
 
 ## 🔒 安全特性
@@ -480,6 +347,7 @@ SMTP_PASS="your-app-password"
 
 ### 认证安全
 - JWT Token 管理
+- 双因素认证 (2FA)
 - 密码哈希存储
 - 邮箱验证机制
 - 权限细粒度控制
@@ -496,52 +364,18 @@ SMTP_PASS="your-app-password"
 - 数据库索引优化
 - 查询性能监控
 - 连接池管理
-- 缓存策略
+- 分页查询
 
 ### API 优化
 - 响应数据压缩
-- 分页查询
 - 懒加载关联
 - 接口缓存
-
-## 🧪 测试
-
-### 单元测试
-```bash
-npm run test
-```
-
-### 端到端测试
-```bash
-npm run test:e2e
-```
-
-### 测试覆盖率
-```bash
-npm run test:cov
-```
-
-## 📝 开发规范
-
-### 代码规范
-- 使用 ESLint + Prettier
-- TypeScript 严格模式
-- 统一的错误处理
-- API 响应格式统一
-
-### 提交规范
-遵循 Conventional Commits：
-```
-feat: 新功能
-fix: 修复问题
-docs: 文档更新
-style: 代码格式
-refactor: 重构
-test: 测试相关
-chore: 构建/工具
-```
+- 无服务器部署
 
 ## 🐛 常见问题
+
+### Q: Vercel 部署后 CORS 错误？
+A: 检查 `vercel.json` 中的 headers 配置，确保 CORS 头部设置正确。
 
 ### Q: 数据库连接失败？
 A: 检查数据库配置和网络连接，确保 MySQL 服务正常运行。
@@ -555,6 +389,9 @@ A: 检查 SMTP 配置，确保邮箱服务器设置正确。
 ### Q: 文件上传失败？
 A: 检查又拍云配置和网络连接。
 
+### Q: 双因素认证问题？
+A: 确保客户端和服务器时间同步，检查 2FA 配置。
+
 ## 📄 许可证
 
 MIT License
@@ -563,6 +400,8 @@ MIT License
 
 - [NestJS](https://nestjs.com/) - Node.js 框架
 - [Prisma](https://prisma.io/) - 数据库 ORM
+- [Vercel](https://vercel.com/) - 无服务器部署平台
 - [JWT](https://jwt.io/) - 身份验证
 - [class-validator](https://github.com/typestack/class-validator) - 数据验证
 - [NodeMailer](https://nodemailer.com/) - 邮件服务
+- [又拍云](https://www.upyun.com/) - CDN 存储服务
