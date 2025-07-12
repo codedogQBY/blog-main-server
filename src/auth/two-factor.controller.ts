@@ -18,28 +18,28 @@ export class TwoFactorController {
   /**
    * 获取客户端真实IP地址
    */
-  private getClientIp(req: Request): string {
+  private getClientIp(req: any): string {
     // 优先从代理头获取真实IP
-    const xForwardedFor = req.headers['x-forwarded-for'] as string;
+    const xForwardedFor = req.headers?.['x-forwarded-for'] as string;
     if (xForwardedFor) {
       const ips = xForwardedFor.split(',').map(ip => ip.trim());
       return ips[0] || 'unknown';
     }
     
     // 从其他代理头获取
-    const xRealIp = req.headers['x-real-ip'] as string;
+    const xRealIp = req.headers?.['x-real-ip'] as string;
     if (xRealIp) {
       return xRealIp;
     }
     
     // 从CF-Connecting-IP获取（Cloudflare）
-    const cfConnectingIp = req.headers['cf-connecting-ip'] as string;
+    const cfConnectingIp = req.headers?.['cf-connecting-ip'] as string;
     if (cfConnectingIp) {
       return cfConnectingIp;
     }
     
     // 从X-Forwarded-For获取
-    const xForwarded = req.headers['x-forwarded'] as string;
+    const xForwarded = req.headers?.['x-forwarded'] as string;
     if (xForwarded) {
       return xForwarded;
     }
@@ -51,7 +51,7 @@ export class TwoFactorController {
   // 获取二维码和密钥（需登录）
   @UseGuards(JwtAuthGuard)
   @Get('generate')
-  async generate(@Req() req: Request) {
+  async generate(@Req() req: any) {
     const user = req['user'];
     if (!user) throw new BadRequestException('未登录');
     const { secret, qrCode } = this.twoFactorService.generateSecret(user.sub, user.mail);
@@ -61,7 +61,7 @@ export class TwoFactorController {
   // 绑定2FA（需登录）
   @UseGuards(JwtAuthGuard)
   @Post('bind')
-  async bind(@Req() req: Request, @Body() body: { token: string; secret: string }) {
+  async bind(@Req() req: any, @Body() body: { token: string; secret: string }) {
     const user = req['user'];
     if (!user) throw new BadRequestException('未登录');
     const { token, secret } = body;
@@ -74,7 +74,7 @@ export class TwoFactorController {
 
   // 登录时校验2FA（登录后返回需要2FA的标志，前端再调用此接口）
   @Post('verify')
-  async verify(@Body() body: { userId: string; token: string }, @Req() req: Request) {
+  async verify(@Body() body: { userId: string; token: string }, @Req() req: any) {
     const { userId, token } = body;
     const ipAddress = this.getClientIp(req);
     
@@ -123,7 +123,7 @@ export class TwoFactorController {
   // 禁用2FA（需登录）
   @UseGuards(JwtAuthGuard)
   @Post('disable')
-  async disable(@Req() req: Request, @Body() body: { token: string }) {
+  async disable(@Req() req: any, @Body() body: { token: string }) {
     const user = req['user'];
     if (!user) throw new BadRequestException('未登录');
     // 校验一次token
@@ -143,7 +143,7 @@ export class TwoFactorController {
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions('two_factor.unbind')
   @Post('disable/:userId')
-  async disableForUser(@Req() req: Request, @Param('userId') userId: string, @Body() body: { token: string }) {
+  async disableForUser(@Req() req: any, @Param('userId') userId: string, @Body() body: { token: string }) {
     const user = req['user'];
     if (!user) throw new BadRequestException('未登录');
     
@@ -168,7 +168,7 @@ export class TwoFactorController {
   // 获取2FA状态（需登录）
   @UseGuards(JwtAuthGuard)
   @Get('status')
-  async status(@Req() req: Request) {
+  async status(@Req() req: any) {
     const user = req['user'];
     if (!user) throw new BadRequestException('未登录');
     return this.twoFactorService.getUserTwoFactorStatus(user.sub);
@@ -177,7 +177,7 @@ export class TwoFactorController {
   // 获取备用验证码（需登录）
   @UseGuards(JwtAuthGuard)
   @Get('backup-codes')
-  async getBackupCodes(@Req() req: Request) {
+  async getBackupCodes(@Req() req: any) {
     const user = req['user'];
     if (!user) throw new BadRequestException('未登录');
     const dbUser = await this.twoFactorService['prisma'].user.findUnique({
@@ -192,7 +192,7 @@ export class TwoFactorController {
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions('two_factor.read')
   @Get('backup-codes/:userId')
-  async getUserBackupCodes(@Req() req: Request, @Param('userId') userId: string) {
+  async getUserBackupCodes(@Req() req: any, @Param('userId') userId: string) {
     const user = req['user'];
     if (!user) throw new BadRequestException('未登录');
     
@@ -212,7 +212,7 @@ export class TwoFactorController {
   // 重置备用验证码（需登录）
   @UseGuards(JwtAuthGuard)
   @Post('regenerate-backup-codes')
-  async regenerateBackupCodes(@Req() req: Request) {
+  async regenerateBackupCodes(@Req() req: any) {
     const user = req['user'];
     if (!user) throw new BadRequestException('未登录');
     const codes = await this.twoFactorService.regenerateBackupCodes(user.sub);
@@ -223,7 +223,7 @@ export class TwoFactorController {
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions('two_factor.update')
   @Post('regenerate-backup-codes/:userId')
-  async regenerateUserBackupCodes(@Req() req: Request, @Param('userId') userId: string) {
+  async regenerateUserBackupCodes(@Req() req: any, @Param('userId') userId: string) {
     const user = req['user'];
     if (!user) throw new BadRequestException('未登录');
     
@@ -238,7 +238,7 @@ export class TwoFactorController {
 
   // 校验备用验证码（登录时）
   @Post('verify-backup-code')
-  async verifyBackupCode(@Body() body: { userId: string; code: string }, @Req() req: Request) {
+  async verifyBackupCode(@Body() body: { userId: string; code: string }, @Req() req: any) {
     const { userId, code } = body;
     const ipAddress = this.getClientIp(req);
     
