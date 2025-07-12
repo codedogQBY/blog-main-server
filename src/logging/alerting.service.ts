@@ -57,7 +57,7 @@ export class AlertingService {
       });
 
       // 检查是否需要发送邮件告警
-      if (this.shouldSendEmail(alertData.level)) {
+      if (this.shouldSendEmail(alertData.level, alertData.category)) {
         await this.sendEmailAlert(alert);
       }
 
@@ -70,7 +70,13 @@ export class AlertingService {
   /**
    * 判断是否需要发送邮件
    */
-  private shouldSendEmail(level: string): boolean {
+  private shouldSendEmail(level: string, category?: string): boolean {
+    // 性能相关的告警不发送邮件给站长
+    if (category === 'performance') {
+      return false;
+    }
+    
+    // 只有严重和错误级别的告警才发送邮件
     return ['critical', 'error'].includes(level);
   }
 
