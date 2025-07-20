@@ -44,8 +44,9 @@ export class CategoriesService {
     limit: number;
     search?: string;
     status?: string;
+    withPublishedArticles?: boolean;
   }) {
-    const { page, limit, search, status } = params;
+    const { page, limit, search, status, withPublishedArticles = false } = params;
     const skip = (page - 1) * limit;
 
     const where: any = {};
@@ -59,6 +60,15 @@ export class CategoriesService {
 
     if (status) {
       where.status = status;
+    }
+
+    // 如果要求只返回有已发布文章的分类
+    if (withPublishedArticles) {
+      where.articles = {
+        some: {
+          published: true
+        }
+      };
     }
 
     const [categories, total] = await Promise.all([

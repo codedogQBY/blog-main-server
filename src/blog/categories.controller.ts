@@ -34,12 +34,14 @@ export class CategoriesController {
     @Query('limit') limit: string = '10',
     @Query('search') search?: string,
     @Query('status') status?: string,
+    @Query('withPublishedArticles') withPublishedArticles?: string,
   ) {
     return this.categoriesService.findAll({
       page: parseInt(page),
       limit: parseInt(limit),
       search,
       status: status || 'enabled',
+      withPublishedArticles: withPublishedArticles === 'true',
     });
   }
 
