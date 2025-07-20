@@ -79,7 +79,11 @@ export class CategoriesService {
         include: {
           parentCategory: true,
           _count: {
-            select: { articles: true },
+            select: { 
+              articles: withPublishedArticles ? {
+                where: { published: true }
+              } : true 
+            },
           },
         },
         orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
