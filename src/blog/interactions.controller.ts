@@ -19,12 +19,41 @@ import { Permissions } from '../common/permissions.decorator';
 @Controller('interactions')
 export class InteractionsController {
   constructor(private readonly interactionsService: InteractionsService) {}
+  private getClientIp(req: any): string {
+    // 优先从代理头获取真实IP
+    const xForwardedFor = req.headers?.['x-forwarded-for'] as string;
+    if (xForwardedFor) {
+      const ips = xForwardedFor.split(',').map(ip => ip.trim());
+      return ips[0] || 'unknown';
+    }
+    
+    // 从其他代理头获取
+    const xRealIp = req.headers?.['x-real-ip'] as string;
+    if (xRealIp) {
+      return xRealIp;
+    }
+    
+    // 从CF-Connecting-IP获取（Cloudflare）
+    const cfConnectingIp = req.headers?.['cf-connecting-ip'] as string;
+    if (cfConnectingIp) {
+      return cfConnectingIp;
+    }
+    
+    // 从X-Forwarded-For获取
+    const xForwarded = req.headers?.['x-forwarded'] as string;
+    if (xForwarded) {
+      return xForwarded;
+    }
+    
+    // 最后使用Express的ip属性或连接地址
+    return req.ip || req.connection?.remoteAddress || req.socket?.remoteAddress || 'unknown';
+  }
 
   @Post('like')
   @Public()
   async toggleLike(@Body() dto: ToggleLikeDto, @Request() req) {
-    // 自动获取IP地址
-    const ip = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || '127.0.0.1';
+    // 使用改进的IP获取方法
+    const ip = this.getClientIp(req);
     
     // 如果前端没有传递IP，使用后端获取的IP
     if (!dto.userInfo.ipAddress) {
@@ -37,8 +66,8 @@ export class InteractionsController {
   @Post('comment')
   @Public()
   async createComment(@Body() dto: CreateCommentDto, @Request() req) {
-    // 自动获取IP地址
-    const ip = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || '127.0.0.1';
+    // 使用改进的IP获取方法
+    const ip = this.getClientIp(req);
     
     // 如果前端没有传递IP，使用后端获取的IP
     if (!dto.userInfo.ipAddress) {
@@ -63,7 +92,7 @@ export class InteractionsController {
   @Get('location')
   @Public()
   async getLocation(@Request() req) {
-    const ip = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || '127.0.0.1';
+    const ip = this.getClientIp(req);
     return this.interactionsService.getUserLocation(ip);
   }
 
