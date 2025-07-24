@@ -67,24 +67,27 @@ export class InteractionsService {
         };
       }
 
-      // 使用免费的 IP 地理位置 API
-      const response = await fetch(`http://ip-api.com/json/${ip}?lang=zh-CN`);
+      // 使用 ipinfo.io 的 IP 地理位置 API
+      const response = await fetch(`https://ipinfo.io/widget/demo/${ip}?dataset=geolocation`);
       const data = await response.json();
 
-      if (data.status === 'success') {
+      if (data.data) {
+        const locationData = data.data;
         return {
           success: true,
           data: {
-            country: data.country || '未知',
-            region: data.regionName || '未知',
-            city: data.city || '未知',
-            latitude: data.lat || null,
-            longitude: data.lon || null,
-            timezone: data.timezone || null,
+            country: locationData.country || '未知',
+            region: locationData.region || '未知',
+            city: locationData.city || '未知',
+            latitude: locationData.loc ? parseFloat(locationData.loc.split(',')[0]) : null,
+            longitude: locationData.loc ? parseFloat(locationData.loc.split(',')[1]) : null,
+            timezone: locationData.timezone || null,
+            postal: locationData.postal || null,
+            org: locationData.org || null,
           }
         };
       } else {
-        throw new Error(data.message || '获取位置信息失败');
+        throw new Error('获取位置信息失败');
       }
     } catch (error) {
       console.error('获取用户位置失败:', error);
