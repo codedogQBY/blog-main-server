@@ -514,30 +514,40 @@ export class ArticlesService {
   }
 
   private async updateArticleTags(articleId: string, tagNames: string[]) {
-    // 删除现有的标签关联
-    await this.prisma.articleTag.deleteMany({
-      where: { articleId },
+    // 使用事务来确保原子性
+    await this.prisma.$transaction(async (tx) => {
+      // 删除现有的标签关联
+      await tx.articleTag.deleteMany({
+        where: { articleId },
+      });
+
+      // 创建新的标签关联
+      const tagData = await this.handleTags(tagNames);
+      
+      for (const tag of tagData) {
+        // 先创建或获取标签 - 使用name作为唯一标识符
+        const createdTag = await tx.tag.upsert({
+          where: { name: tag.name },
+          update: {},
+          create: tag,
+        });
+
+        // 使用 upsert 来避免重复创建
+        await tx.articleTag.upsert({
+          where: {
+            articleId_tagId: {
+              articleId,
+              tagId: createdTag.id,
+            },
+          },
+          update: {},
+          create: {
+            articleId,
+            tagId: createdTag.id,
+          },
+        });
+      }
     });
-
-    // 创建新的标签关联
-    const tagData = await this.handleTags(tagNames);
-    
-    for (const tag of tagData) {
-      // 先创建或获取标签 - 使用name作为唯一标识符
-      const createdTag = await this.prisma.tag.upsert({
-        where: { name: tag.name },
-        update: {},
-        create: tag,
-      });
-
-      // 然后创建文章标签关联
-      await this.prisma.articleTag.create({
-        data: {
-          articleId,
-          tagId: createdTag.id,
-        },
-      });
-    }
   }
 
   async getStats() {
