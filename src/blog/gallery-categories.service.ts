@@ -291,7 +291,10 @@ export class GalleryCategoriesService {
   // 私有方法：获取指定分类的图片数量
   private async getImageCountByCategory(categoryName: string): Promise<number> {
     return this.prisma.gallery.count({
-      where: { category: categoryName },
+      where: { 
+        category: categoryName,
+        status: 'published' // 只统计已发布的图库
+      },
     });
   }
 
