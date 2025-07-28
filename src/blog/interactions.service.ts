@@ -67,23 +67,23 @@ export class InteractionsService {
         };
       }
 
-      // 使用 ipinfo.io 的 IP 地理位置 API
-      const response = await fetch(`https://ipinfo.io/widget/demo/${ip}?dataset=geolocation`);
+      // 使用 api.vore.top 的 IP 地理位置 API
+      const response = await fetch(`https://api.vore.top/api/IPdata?ip=${ip}`);
       const data = await response.json();
 
-      if (data.data) {
-        const locationData = data.data;
+      if (data.code === 200 && data.ipdata) {
+        const locationData = data.ipdata;
         return {
           success: true,
           data: {
-            country: locationData.country || '未知',
-            region: locationData.region || '未知',
-            city: locationData.city || '未知',
-            latitude: locationData.loc ? parseFloat(locationData.loc.split(',')[0]) : null,
-            longitude: locationData.loc ? parseFloat(locationData.loc.split(',')[1]) : null,
-            timezone: locationData.timezone || null,
-            postal: locationData.postal || null,
-            org: locationData.org || null,
+            country: locationData.info1 || '未知',
+            region: locationData.info2 || '未知',
+            city: locationData.info3 || '未知',
+            latitude: null, // 新接口不提供经纬度信息
+            longitude: null, // 新接口不提供经纬度信息
+            timezone: null, // 新接口不提供时区信息
+            postal: null, // 新接口不提供邮编信息
+            org: locationData.isp || null, // 使用 ISP 信息作为组织信息
           }
         };
       } else {
@@ -1077,4 +1077,4 @@ export class InteractionsService {
 
     return result;
   }
-} 
+}
