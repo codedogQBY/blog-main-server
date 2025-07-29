@@ -310,10 +310,10 @@ export class FilesService {
       take: pageSize,
     });
 
-    // 确保所有返回的文件URL都使用HTTP协议
+    // 返回原始文件URL
     const processedFiles = files.map(file => ({
       ...file,
-      url: file.url ? file.url.replace('https://', 'http://') : file.url
+      url: file.url
     }));
 
     return {
@@ -361,10 +361,10 @@ export class FilesService {
       throw new NotFoundException('文件不存在');
     }
 
-    // 确保返回的文件URL使用HTTP协议
+    // 返回原始文件URL
     return {
       ...file,
-      url: file.url ? file.url.replace('https://', 'http://') : file.url
+      url: file.url
     };
   }
 
@@ -438,4 +438,4 @@ export class FilesService {
       filesByType,
     };
   }
-} 
+}

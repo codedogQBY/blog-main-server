@@ -55,7 +55,7 @@ export class UpyunService {
       const result = await this.client.putFile(cleanPath, buffer);
       
       if (result) {
-        const url = `http://${this.domain}${cleanPath}`;  // 使用HTTP而非HTTPS
+        const url = `https://${this.domain}${cleanPath}`;  // 使用HTTPS协议
         this.logger.log(`File uploaded successfully: ${cleanPath}`);
         return { success: true, url };
       } else {
@@ -172,7 +172,7 @@ export class UpyunService {
    */
   getFileUrl(path: string): string {
     const cleanPath = this.cleanPath(path);
-    return `http://${this.domain}${cleanPath}`;  // 使用HTTP而非HTTPS
+    return `https://${this.domain}${cleanPath}`;  // 使用HTTPS协议
   }
 
   /**
@@ -231,4 +231,4 @@ export class UpyunService {
     
     return cleanPath;
   }
-} 
+}
