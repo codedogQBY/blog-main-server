@@ -7,6 +7,7 @@ export class UpyunService {
   private readonly logger = new Logger(UpyunService.name);
   private readonly client: upyun.Client;
   private readonly domain: string;
+  private readonly protocol: string;
 
   constructor(private readonly configService: ConfigService) {
     if (!this.configService.get<string>('UPYUN_BUCKET') ||
@@ -37,6 +38,8 @@ export class UpyunService {
     this.client = new upyun.Client(service, options);
     
     this.domain = this.configService.get<string>('UPYUN_DOMAIN')!;
+    // 获取文件访问协议，默认为http
+    this.protocol = this.configService.get<string>('UPYUN_PROTOCOL') || 'http';
   }
 
   /**
@@ -55,7 +58,7 @@ export class UpyunService {
       const result = await this.client.putFile(cleanPath, buffer);
       
       if (result) {
-        const url = `https://${this.domain}${cleanPath}`;  // 使用HTTPS协议
+        const url = `${this.protocol}://${this.domain}${cleanPath}`;
         this.logger.log(`File uploaded successfully: ${cleanPath}`);
         return { success: true, url };
       } else {
@@ -172,7 +175,7 @@ export class UpyunService {
    */
   getFileUrl(path: string): string {
     const cleanPath = this.cleanPath(path);
-    return `https://${this.domain}${cleanPath}`;  // 使用HTTPS协议
+    return `${this.protocol}://${this.domain}${cleanPath}`;
   }
 
   /**
